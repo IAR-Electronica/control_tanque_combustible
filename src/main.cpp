@@ -15,8 +15,8 @@
 //#include <webUpdater.hpp>
 #define PUBLISH_TIME_SENSOR 10000ul
 
-#define SSID "local"
-#define PASSWORD_WIFI "iarpublicas"
+#define SSID ""
+#define PASSWORD_WIFI ""
 void connectWifiIAR() ; 
 int readUltasonic() ; 
 
