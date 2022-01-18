@@ -23,7 +23,7 @@ unsigned long int id_dato_sensor_2 = 0 ;
 int date [6]; //
 
 // obtiene la hora usando NTC 
-void obtainTimestamp() ; 
+void getHourNTC() ; 
 void sendPacketNTP(IPAddress& address) ; 
 int readUltrasonicSensor() ; 
 void uploadONMQTT(char *topic, byte *payload, unsigned int length);
@@ -34,6 +34,7 @@ WiFiUDP udp;
 
 
 void initMQTT(){ 
+    Serial.println("init MQTT") ; 
     pinMode(PIN_TRIGGER,OUTPUT) ; 
     pinMode(PIN_ECHO,INPUT) ;    
     randomSeed(micros()) ;
@@ -52,25 +53,29 @@ void publishmqtt() {
       id_mcu = "mac"
       dato 
     */
-    obtainTimestamp() ; 
+    Serial.println("publish!")  ;
+    getHourNTC() ; 
     //id_dato,timestamp, id_mcu,id_sensor, dato  
     char payload[41] ; 
-                      //
-    sprintf(payload,"%ld,%d/%d/%d %02d:%02d:%02d,%s,%s,%d" ,id_dato_sensor_1,date[0],date[1],
+                    //  
+    sprintf(payload,"%ld ,%d/%d/%d %02d:%02d:%02d,%s,%s,%d" ,id_dato_sensor_1,date[0],date[1],
             date[2],date[3],date[4],date[5],MAC_ADDRESS,
             ID_SENSOR_1, distance);  
     id_dato_sensor_1++ ; 
     Serial.println(payload) ; 
-//    client.publish(TOPIC_1_MQTT,payload) ; 
+   // client.publish(TOPIC_1_MQTT,payload) ; 
 }
 
 
 int readUltrasonicSensor(){ 
+   
     digitalWrite(PIN_TRIGGER,HIGH) ; 
     delayMicroseconds(10) ; 
-    digitalWrite(PIN_TRIGGER,LOW) ; 
-    unsigned long int miliseconds_response = pulseIn(PIN_ECHO,HIGH);
+    digitalWrite(PIN_TRIGGER,LOW) ;  
+    //pulseIn return 0 if error response 
+    unsigned long int miliseconds_response = pulseIn(PIN_ECHO,HIGH); 
     float distance_cm = 0.034 * (miliseconds_response/2) ; 
+    Serial.print("distancia: "); Serial.println(distance_cm) ; 
     int distance = (int) distance_cm ; 
     return distance ; 
 }
@@ -81,7 +86,6 @@ void reconnect() {
   // Loop until we're reconnected
   while (!client.connected()) 
   {
-    Serial.print("Attempting MQTT connection...");
     // Create a random client ID
     String clientId = "ESP8266SALAMAQUINA";
     clientId += String(random(0xffff), HEX) ; 
@@ -93,10 +97,9 @@ void reconnect() {
       client.subscribe(TOPIC_2_MQTT) ; 
     
     } else {
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
-      delay(2000);
+      Serial.println("reconectando!") ; 
+      delay(2000); //  ver como cambiar este estado ! 
+      //reemplazar delay con timer de 2 segundos ! 
     }
   }
 }
@@ -146,7 +149,7 @@ void uploadONMQTT(char *topic, byte *payload, unsigned int length)
 
 
 
-void obtainTimestamp(){
+void getHourNTC(){
   IPAddress server_ntc_ip ; 
   byte obtain_date[NTP_PACKET_SIZE] ; 
   WiFi.hostByName(SERVER_NTC, server_ntc_ip);
@@ -155,6 +158,7 @@ void obtainTimestamp(){
   if (!response){
     Serial.print("error in packet ") ; 
   }else{ 
+    Serial.println("obtain parameters! ") ; 
     //obtain ntc parameters 
     udp.read(obtain_date, NTP_PACKET_SIZE);
     unsigned long highWord = word(obtain_date[40],obtain_date[41]);

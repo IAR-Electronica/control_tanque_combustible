@@ -13,37 +13,69 @@
 #include <Arduino.h>
 #include <mqtt.hpp>
 //#include <webUpdater.hpp>
-#define PUBLISH_TIME_SENSOR 10000ul
+#define PUBLISH_TIME_SENSOR 5 //TIME IN SECONDS 
 
 #define SSID ""
 #define PASSWORD_WIFI ""
-void connectWifiIAR() ; 
+
+
+
+int wifi_con = -1 ; 
+
+// scheduler variables  
+int connect_wifi_verification = 0 ; 
+int time_publish_sensor_distance  = 0 ; 
+int time_publish_sensor_capacitivo = 0 ; 
+int time_verify_connect = 0 ;
+unsigned int  time_connect_iar = 0 ; 
+//esta funcion se conecta al wifi del iar, 1 true, -1 false  
+int connectIAR() ; 
 int readUltasonic() ; 
-
-
+ //configura base de tiempo en un segundo 
+void initTimer() ;
+//rutina de interrupción cada un segundo 
+void IRAM_ATTR isr_time() ;
 
 
 void setup() {
-  Serial.begin(115200) ; 
-  connectWifiIAR() ; 
+  Serial.begin(115200);
   initMQTT() ; 
-//  initWebUpdate() ; 
-
- 
+  initTimer() ;   
+  Serial.println() ;  
+  wifi_con =-1;  
+  if (wifi_con == 1){
+    getHourNTC() ; 
+    initMQTT() ; 
+  }else if (wifi_con == -1){
+    Serial.print("WIFI_CON -1") ;
+  }else ESP.restart() ;  // seguridad !  
+  time_publish_sensor_distance = 0 ; 
+  connect_wifi_verification = 0 ; 
+//  time_connect_iar = 0 ; 
 }
 
-unsigned long int time_publish = 0 ; 
 
 void loop() {
-  if (!client.connected()) {
-    reconnect();
+  // 10 minutos 
+  if (time_connect_iar==600000ul){
+    Serial.print("10 minutos") ; 
+    time_connect_iar = 0 ; 
+  
   }
+  
   if (web_update_on == true){
     updateSoftware() ; 
   }
-
-  if (millis()-time_publish>=PUBLISH_TIME_SENSOR){
-    time_publish = millis() ; 
+  //publish data every five seconds using 
+  if (time_publish_sensor_distance == 5000){
+    Serial.print("time_connect_iar = ") ; Serial.println(time_connect_iar) ; 
+    time_publish_sensor_distance = 0 ;  
+    if (WiFi.status() == WL_CONNECTED ){
+      Serial.println("connect_to_wifi") ; 
+    }else {
+      Serial.println("not_connect_to_wifi") ; 
+      
+    }
     publishmqtt() ; 
   }
   client.loop() ; 
@@ -53,24 +85,50 @@ void loop() {
 
 
 
-void connectWifiIAR() { 
+int connectIAR() { 
 
   /*
   * return 1 --> conectado 
   * return -1 --> no se conecto 
   */
+  Serial.println("connect_wifi") ; 
+  int error_connect = -1 ; 
   const char *ssid = SSID ; 
   const char *psk = PASSWORD_WIFI ; 
   WiFi.mode(WIFI_STA);
-
   WiFi.begin(ssid, psk);
-  while (WiFi.status() != WL_CONNECTED) 
+  
+  connect_wifi_verification  = 0 ;  
+   
+  
+  while (WiFi.status() != WL_CONNECTED && connect_wifi_verification <=10000)   
   {
-    delay(200);
-  }
-  Serial.print("IP: ") ; Serial.println(WiFi.localIP()) ; 
+    while(connect_wifi_verification%200 != 0){
+      yield() ; //hace la magia de terminar la ejecución del stack tcp/ip 
+    }  
+    yield() ;  //hace la magia de terminar la ejecución del stack tcp/ip  
+  } 
+  connect_wifi_verification = 0 ; 
+  if (WiFi.status() != WL_CONNECTED){
+    error_connect = -1 ; 
+  }else error_connect = 1 ; 
+  return error_connect; 
+}
 
 
+void initTimer(){
+  timer1_enable(TIM_DIV16,TIM_EDGE,TIM_LOOP) ; 
+  //cantidad de ticks .. 23 bits 
+  // TIMER TICK 1 ms (1000ms = 1 segundo)
+  timer1_write(5000) ; 
+  timer1_attachInterrupt(isr_time) ; //cantidad de ticks 
 
+}
+
+
+void IRAM_ATTR isr_time(){
+  time_publish_sensor_distance++ ; 
+  connect_wifi_verification++ ; 
+  time_connect_iar++ ; 
 }
 
