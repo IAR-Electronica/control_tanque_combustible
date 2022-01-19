@@ -13,7 +13,7 @@
 #define ID_SENSOR_1 ""
 #define ID_MSG_SENSOR_2 "" 
 #define MAC_ADDRESS ""
-#define PORT_MQTT 1883  // PORT INSECURE
+#define PORT_MQTT 1883  // PORT_INSECURE
  //sensor de distancia 
 unsigned long int id_dato_sensor_1 = 0 ;
  //sensor capacitivo
@@ -59,8 +59,7 @@ void publishmqtt() {
     sprintf(payload,"%ld ,%d/%d/%d %02d:%02d:%02d,%s,%s,%d" ,id_dato_sensor_1,date[0],date[1],
             date[2],date[3],date[4],date[5],MAC_ADDRESS,
             ID_SENSOR_1, distance); */ 
-    id_dato_sensor_1++ ; 
-    Serial.println(payload) ; 
+    
    // client.publish(TOPIC_1_MQTT,payload) ; 
 }
 

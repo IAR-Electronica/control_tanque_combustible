@@ -25,11 +25,11 @@
 int wifi_con = -1 ; 
 
 // scheduler variables  
-int connect_wifi_verification = 0 ; 
-int time_publish_sensor_distance  = 0 ; 
-int time_publish_sensor_capacitivo = 0 ; 
-int time_verify_connect = 0 ;
-unsigned int  time_connect_iar = 0 ; 
+unsigned int timer_1  = 0 ; // ultrasonic sensor time 
+unsigned int timer_2  = 0 ; // mqtt publish time sensor ultrasonic   
+unsigned int timer_3  = 0 ; // connect_wifi  
+unsigned int timer_4  = 0 ; // mqtt_ publish cap_sensor and off web server  
+
 //esta funcion se conecta al wifi del iar, 1 true, -1 false  
 int connectIAR() ; 
 int readUltasonic() ; 
@@ -51,28 +51,42 @@ void setup() {
     Serial.print("WIFI_CON -1") ;
   }else ESP.restart() ;  // seguridad !  
   initPorts() ; 
-  time_publish_sensor_distance = 0 ; 
-  connect_wifi_verification = 0 ; 
-//  time_connect_iar = 0 ; 
+  // init timer variables 
+  timer_1 = 0 ; 
+  timer_2 = 0 ; 
+  timer_3 = 0 ; 
+  timer_4 = 0 ; 
 }
 
 
 void loop() {
-  // 10 minutos 
-  if (time_connect_iar==600000ul){
-    Serial.print("10 minutos") ; 
-    time_connect_iar = 0 ; 
-  
-  }
-  
+  //server web on 
   if (web_update_on == true){
     updateSoftware() ; 
   }
-  //publish data every five seconds using 
-  if (time_publish_sensor_distance == 5000){
-    readUltrasonicSensor() ; 
-    time_publish_sensor_distance = 0 ; 
+  
+  if (timer_4 == 600000ul){
+    timer_4 = 0 ; 
+    Serial.println("10 minutos") ; 
   }
+
+  if (timer_2 == 60000ul ){
+    Serial.println("one minute") ; 
+    timer_2 = 0 ; 
+  }
+  
+  if (timer_3 == 40000){
+    Serial.println("cuarenta segundos") ; 
+    timer_3 = 0 ; 
+  }
+  
+  // read the ultrasonic sensor 
+  if (timer_1 == 5000){
+    readUltrasonicSensor() ; 
+    timer_1 = 0 ; 
+  }
+
+
   client.loop() ; 
 
 }
@@ -92,18 +106,14 @@ int connectIAR() {
   const char *psk = PASSWORD_WIFI ; 
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, psk);
-  
-  connect_wifi_verification  = 0 ;  
-   
-  
-  while (WiFi.status() != WL_CONNECTED && connect_wifi_verification <=10000)   
+  while (WiFi.status() != WL_CONNECTED && timer_3 <=10000)   
   {
-    while(connect_wifi_verification%200 != 0){
+    while(timer_3%200 != 0){
       yield() ; //hace la magia de terminar la ejecución del stack tcp/ip 
     }  
     yield() ;  //hace la magia de terminar la ejecución del stack tcp/ip  
   } 
-  connect_wifi_verification = 0 ; 
+
   if (WiFi.status() != WL_CONNECTED){
     error_connect = -1 ; 
   }else error_connect = 1 ; 
@@ -122,8 +132,12 @@ void initTimer(){
 
 
 void IRAM_ATTR isr_time(){
-  time_publish_sensor_distance++ ; 
-  connect_wifi_verification++ ; 
-  time_connect_iar++ ; 
+  timer_1 ++ ; 
+  timer_2 ++ ; 
+  timer_3 ++ ; 
+  timer_4 ++ ; 
+  
+
+
 }
 

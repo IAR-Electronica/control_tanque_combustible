@@ -39,6 +39,7 @@ void readUltrasonicSensor(){
                                          sensor_distance[2].distance + 
                                          sensor_distance[3].distance +
                                          sensor_distance[4].distance)/5.0 ; 
+    // mediana ! 
     distance_median[0] = sensor_distance[0].distance ; 
     distance_median[1] = sensor_distance[1].distance ; 
     distance_median[2] = sensor_distance[2].distance ; 
@@ -57,7 +58,8 @@ void readUltrasonicSensor(){
             }
         }
     }
-    sensor_distance_media.median_data = distance_median[2] ;  
+    sensor_distance_media.median_data = distance_median[2] ;
+      
 }
 
 
