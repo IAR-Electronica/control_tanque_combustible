@@ -5,7 +5,7 @@
 #define PIN_SENSOR_CAP D1 
 
 sensor_ultrasonic sensor_distance[5];  
-
+sensor_distance_media_values sensor_distance_media ; 
 void initPorts(){
     pinMode(PIN_TRIGGER,OUTPUT) ;
     pinMode(PIN_SENSOR_CAP,OUTPUT) ;
@@ -30,10 +30,15 @@ void readUltrasonicSensor(){
     // fifo buffer rutina  
     for (index_fifo_buffer = 4;index_fifo_buffer>0;index_fifo_buffer--)
     {
-        sensor_distance[index_fifo_buffer].distance = sensor_distance[index_fifo_buffer-1].distance; 
+        sensor_distance[index_fifo_buffer] = sensor_distance[index_fifo_buffer-1]; 
     }
     sensor_distance[0].distance = (int) distance_cm ; 
     //media movil
+    sensor_distance_media.media_movil =( sensor_distance[0].distance + 
+                                         sensor_distance[1].distance +
+                                         sensor_distance[2].distance + 
+                                         sensor_distance[3].distance +
+                                         sensor_distance[4].distance)/5.0 ; 
     distance_median[0] = sensor_distance[0].distance ; 
     distance_median[1] = sensor_distance[1].distance ; 
     distance_median[2] = sensor_distance[2].distance ; 
@@ -52,25 +57,7 @@ void readUltrasonicSensor(){
             }
         }
     }
-    //mediana: distance_median[2] ;  
-    Serial.println("--------------------------------------------------------") ; 
-    Serial.print("ordenados: : ") ; Serial.print( distance_median[0]) ; 
-    Serial.print( distance_median[1]) ; Serial.print(" ")  ;
-    Serial.print( distance_median[2]) ; Serial.print(" ")  ;
-    Serial.print( distance_median[3]) ; Serial.print(" ")  ;
-    Serial.println( distance_median[4]) ; 
-    
-    //calcular media movil y mediana! 
-
-
-
-    Serial.print("distance: ") ; Serial.println( sensor_distance[0].distance) ; 
-    Serial.print("distance: ") ; Serial.println( sensor_distance[1].distance) ; 
-    Serial.print("distance: ") ; Serial.println( sensor_distance[2].distance) ; 
-    Serial.print("distance: ") ; Serial.println( sensor_distance[3].distance) ; 
-    Serial.print("distance: ") ; Serial.println( sensor_distance[4].distance) ; 
-    Serial.println("--------------------------------------------------------") ; 
-    
+    sensor_distance_media.median_data = distance_median[2] ;  
 }
 
 

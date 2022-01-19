@@ -24,6 +24,6 @@ enum TYPE_SENSOR {
     CAPACITIVO, 
     ULTRASONIDO
 }; 
-
+typedef sensor_ultrasonic_compute sensor_distance_media_values  ;
 typedef sensor_ultrasonic sensor_ultrasonic ; 
 typedef TYPE_SENSOR type_sensor ; 
