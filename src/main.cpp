@@ -12,6 +12,8 @@
 #include <ESP8266WiFi.h> 
 #include <Arduino.h>
 #include <mqtt.hpp>
+#include "readSensors.hpp"
+
 //#include <webUpdater.hpp>
 #define PUBLISH_TIME_SENSOR 5 //TIME IN SECONDS 
 
@@ -39,7 +41,6 @@ void IRAM_ATTR isr_time() ;
 
 void setup() {
   Serial.begin(115200);
-  initMQTT() ; 
   initTimer() ;   
   Serial.println() ;  
   wifi_con =-1;  
@@ -49,6 +50,7 @@ void setup() {
   }else if (wifi_con == -1){
     Serial.print("WIFI_CON -1") ;
   }else ESP.restart() ;  // seguridad !  
+  initPorts() ; 
   time_publish_sensor_distance = 0 ; 
   connect_wifi_verification = 0 ; 
 //  time_connect_iar = 0 ; 
@@ -68,15 +70,8 @@ void loop() {
   }
   //publish data every five seconds using 
   if (time_publish_sensor_distance == 5000){
-    Serial.print("time_connect_iar = ") ; Serial.println(time_connect_iar) ; 
-    time_publish_sensor_distance = 0 ;  
-    if (WiFi.status() == WL_CONNECTED ){
-      Serial.println("connect_to_wifi") ; 
-    }else {
-      Serial.println("not_connect_to_wifi") ; 
-      
-    }
-    publishmqtt() ; 
+    readUltrasonicSensor() ; 
+    time_publish_sensor_distance = 0 ; 
   }
   client.loop() ; 
 

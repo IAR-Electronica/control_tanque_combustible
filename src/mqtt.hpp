@@ -25,7 +25,6 @@ int date [6]; //
 // obtiene la hora usando NTC 
 void getHourNTC() ; 
 void sendPacketNTP(IPAddress& address) ; 
-int readUltrasonicSensor() ; 
 void uploadONMQTT(char *topic, byte *payload, unsigned int length);
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -44,8 +43,7 @@ void initMQTT(){
 }
 
 void publishmqtt() { 
-    int distance = readUltrasonicSensor() ; 
-  
+    
     //id_dato,timestamp, id_mcu,id_sensor, dato  
     /* --ber_data++ -->init in one 
       id_dato --> incre>id_dato: nummenta en 1,
@@ -53,32 +51,21 @@ void publishmqtt() {
       id_mcu = "mac"
       dato 
     */
-    Serial.println("publish!")  ;
-    getHourNTC() ; 
+   
+   // getHourNTC() ; 
     //id_dato,timestamp, id_mcu,id_sensor, dato  
     char payload[41] ; 
-                    //  
+    /*                //  
     sprintf(payload,"%ld ,%d/%d/%d %02d:%02d:%02d,%s,%s,%d" ,id_dato_sensor_1,date[0],date[1],
             date[2],date[3],date[4],date[5],MAC_ADDRESS,
-            ID_SENSOR_1, distance);  
+            ID_SENSOR_1, distance); */ 
     id_dato_sensor_1++ ; 
     Serial.println(payload) ; 
    // client.publish(TOPIC_1_MQTT,payload) ; 
 }
 
 
-int readUltrasonicSensor(){ 
-   
-    digitalWrite(PIN_TRIGGER,HIGH) ; 
-    delayMicroseconds(10) ; 
-    digitalWrite(PIN_TRIGGER,LOW) ;  
-    //pulseIn return 0 if error response 
-    unsigned long int miliseconds_response = pulseIn(PIN_ECHO,HIGH); 
-    float distance_cm = 0.034 * (miliseconds_response/2) ; 
-    Serial.print("distancia: "); Serial.println(distance_cm) ; 
-    int distance = (int) distance_cm ; 
-    return distance ; 
-}
+
 
 
 
@@ -96,11 +83,7 @@ void reconnect() {
       Serial.println("connected");
       client.subscribe(TOPIC_2_MQTT) ; 
     
-    } else {
-      Serial.println("reconectando!") ; 
-      delay(2000); //  ver como cambiar este estado ! 
-      //reemplazar delay con timer de 2 segundos ! 
-    }
+    } 
   }
 }
 
@@ -139,9 +122,7 @@ void uploadONMQTT(char *topic, byte *payload, unsigned int length)
   user.trim() ; 
   pass = payload_str.substring(pass_index_end+1) ; 
   pass.trim() ; 
-  Serial.print("user: ") ; Serial.println(user) ; 
-  Serial.print("pass: ") ; Serial.println(pass) ; 
-
+ 
   initWebUpdate(user.c_str(), pass.c_str() ) ; 
 
 
