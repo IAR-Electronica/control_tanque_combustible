@@ -1,7 +1,6 @@
 struct sensor_ultrasonic{
-    unsigned int id_dato  ; //changes only publish data
     unsigned int distance ;  
-    time_t last_unix_time ;   
+    time_t unix_time_sample ;  
 } ;
 
 
@@ -22,8 +21,21 @@ struct sensor_capacitivo{
 
 enum TYPE_SENSOR {
     CAPACITIVO, 
-    ULTRASONIDO
+    ULTRASONIDO,
+    ERROR_ULTRASONIDO
 }; 
+
+
+
+enum ERROR_CONNECT_WIFI_MQTT {
+    CONNECT, 
+    ERROR_WIFI,  
+    ERROR_MQTT 
+}; 
+
+
+// DEFINICION DE ALIAS PARA ESTRUCTURAS DE DATOS ! 
 typedef sensor_ultrasonic_compute sensor_distance_media_values  ;
 typedef sensor_ultrasonic sensor_ultrasonic ; 
 typedef TYPE_SENSOR type_sensor ; 
+typedef ERROR_CONNECT_WIFI_MQTT error_connect ; 

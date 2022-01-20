@@ -17,8 +17,8 @@
 //#include <webUpdater.hpp>
 #define PUBLISH_TIME_SENSOR 5 //TIME IN SECONDS 
 
-#define SSID ""
-#define PASSWORD_WIFI ""
+#define SSID "local"
+#define PASSWORD_WIFI "iarpublicas"
 
 
 
@@ -30,10 +30,11 @@ unsigned int timer_2  = 0 ; // mqtt publish time sensor ultrasonic
 unsigned int timer_3  = 0 ; // connect_wifi  
 unsigned int timer_4  = 0 ; // mqtt_ publish cap_sensor and off web server  
 
+error_connect isConnecctWifi_mqtt() ; 
+
 //esta funcion se conecta al wifi del iar, 1 true, -1 false  
 int connectIAR() ; 
-int readUltasonic() ; 
- //configura base de tiempo en un segundo 
+ //configura base de tiempo en un milisegundo 
 void initTimer() ;
 //rutina de interrupción cada un segundo 
 void IRAM_ATTR isr_time() ;
@@ -42,6 +43,7 @@ void IRAM_ATTR isr_time() ;
 void setup() {
   Serial.begin(115200);
   initTimer() ;   
+  initMQTT() ;  
   Serial.println() ;  
   wifi_con =-1;  
   if (wifi_con == 1){
@@ -49,7 +51,7 @@ void setup() {
     initMQTT() ; 
   }else if (wifi_con == -1){
     Serial.print("WIFI_CON -1") ;
-  }else ESP.restart() ;  // seguridad !  
+  }else ESP.restart() ;  // seguridad   
   initPorts() ; 
   // init timer variables 
   timer_1 = 0 ; 
@@ -70,13 +72,14 @@ void loop() {
     Serial.println("10 minutos") ; 
   }
 
+  // timer de un minuto 
   if (timer_2 == 60000ul ){
-    Serial.println("one minute") ; 
+    isConnecctWifi_mqtt() ;
     timer_2 = 0 ; 
   }
   
+  //verificación de wifi y mqtt cada 40 segundos 
   if (timer_3 == 40000){
-    Serial.println("cuarenta segundos") ; 
     timer_3 = 0 ; 
   }
   
@@ -93,7 +96,8 @@ void loop() {
 
 
 
-
+//función para conectarse a la red del iar
+//maximo tiempo de ejecucion 10 segundos ! 
 int connectIAR() { 
 
   /*
@@ -106,6 +110,7 @@ int connectIAR() {
   const char *psk = PASSWORD_WIFI ; 
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, psk);
+
   while (WiFi.status() != WL_CONNECTED && timer_3 <=10000)   
   {
     while(timer_3%200 != 0){
@@ -119,6 +124,45 @@ int connectIAR() {
   }else error_connect = 1 ; 
   return error_connect; 
 }
+
+
+/*
+ * return enum error_connect 
+ * CONNECT --> AMBOS CONECTADOS 
+ * ERROR_WIFI --> MQTT DESACTIVADO Y DESCONECTADO DEL WIFI 
+ * ERROR_MQTT --> WIFI CONECTADO Y MQTT NO CONECTADO 
+ * En caso de estar desconectado, reintentará conectarse 
+ * tiempo maximo de ejecución: 13 segundos ! 
+*/
+
+
+error_connect isConnecctWifi_mqtt()
+{
+  error_connect error_status_network ; 
+  int connect_iar ; 
+  if (WiFi.status() != WL_CONNECTED )
+  {
+    connect_iar = connectIAR() ; 
+    if (connect_iar == 1){
+      if (!client.connected()) 
+      {
+        reconnect(); //PONER TIMEOUT 
+      }
+    }
+    error_status_network = ERROR_WIFI ; 
+  }
+  return error_status_network  ; 
+
+/*
+  if (!client.connected()) 
+  {
+    reconnect(); //PONER TIMEOUT 
+  }
+*/
+}
+
+
+
 
 
 void initTimer(){

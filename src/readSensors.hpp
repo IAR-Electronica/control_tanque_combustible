@@ -2,10 +2,14 @@
 #include "data_sensors.h"
 #define PIN_TRIGGER 12 // 
 #define PIN_ECHO   14 //
+#define SOUND_VELOCITY 0.034 //  CM/SEG 
 #define PIN_SENSOR_CAP D1 
-
+//ultimas 5 lecturas del sensor ultrasonico  
 sensor_ultrasonic sensor_distance[5];  
 sensor_distance_media_values sensor_distance_media ; 
+time_t time_sample_error ;  
+
+
 void initPorts(){
     pinMode(PIN_TRIGGER,OUTPUT) ;
     pinMode(PIN_SENSOR_CAP,OUTPUT) ;
@@ -17,29 +21,42 @@ void initPorts(){
 // con un buffer de tamaño 5 
 // además, obtiene el unix_time desde un servidor NTC (falta terminar)
 void readUltrasonicSensor(){ 
-    //getNTC unix time ! 
     int index_fifo_buffer = 0 ; 
     unsigned int distance_median[5] ; 
-    //get unix_time 
+    //getNTC unix time ! 
+    time_t unix_time = getHourNTC() ;
+    if (unix_time == 0){
+        unix_time = (sensor_distance[0].unix_time_sample != 0)?sensor_distance[0].unix_time_sample+5:0 ; 
+    } 
+
     digitalWrite(PIN_TRIGGER,HIGH) ; 
     delayMicroseconds(10) ; 
     digitalWrite(PIN_TRIGGER,LOW) ;  
     //pulseIn return 0 if error response 
     unsigned long int miliseconds_response = pulseIn(PIN_ECHO,HIGH); 
-    float distance_cm = 0.034 * (miliseconds_response/2) ;
+    if (miliseconds_response == 0){
+        // publish error sensor ! 
+    }
+    float distance_cm = SOUND_VELOCITY * (miliseconds_response/2) ;
+    
     // fifo buffer rutina  
     for (index_fifo_buffer = 4;index_fifo_buffer>0;index_fifo_buffer--)
     {
         sensor_distance[index_fifo_buffer] = sensor_distance[index_fifo_buffer-1]; 
+        if (sensor_distance[index_fifo_buffer].unix_time_sample == 0 ){
+            sensor_distance[index_fifo_buffer].unix_time_sample = (unix_time !=(time_t) 0)?unix_time-(time_t)(5*index_fifo_buffer) :sensor_distance[index_fifo_buffer].unix_time_sample ; 
+        }
+        
     }
     sensor_distance[0].distance = (int) distance_cm ; 
-    //media movil
+    sensor_distance[0].unix_time_sample = unix_time ; 
+    
     sensor_distance_media.media_movil =( sensor_distance[0].distance + 
                                          sensor_distance[1].distance +
                                          sensor_distance[2].distance + 
                                          sensor_distance[3].distance +
                                          sensor_distance[4].distance)/5.0 ; 
-    // mediana ! 
+    // mediana  
     distance_median[0] = sensor_distance[0].distance ; 
     distance_median[1] = sensor_distance[1].distance ; 
     distance_median[2] = sensor_distance[2].distance ; 
@@ -59,7 +76,24 @@ void readUltrasonicSensor(){
         }
     }
     sensor_distance_media.median_data = distance_median[2] ;
-      
+    Serial.print("distancias: ") ; 
+    Serial.print(sensor_distance[0].distance) ; Serial.print(" "); 
+    Serial.print(sensor_distance[1].distance) ; Serial.print(" "); 
+    Serial.print(sensor_distance[2].distance) ; Serial.print(" "); 
+    Serial.print(sensor_distance[3].distance) ; Serial.print(" "); 
+    Serial.print(sensor_distance[4].distance) ; Serial.println(" "); 
+    
+    Serial.print("tiempo_unix: ") ; 
+    Serial.print(sensor_distance[0].unix_time_sample) ; Serial.print(" "); 
+    Serial.print(sensor_distance[1].unix_time_sample) ; Serial.print(" "); 
+    Serial.print(sensor_distance[2].unix_time_sample) ; Serial.print(" "); 
+    Serial.print(sensor_distance[3].unix_time_sample) ; Serial.print(" "); 
+    Serial.print(sensor_distance[4].unix_time_sample) ; Serial.println(" "); 
+
+
+
+
+
 }
 
 

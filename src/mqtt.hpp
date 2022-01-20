@@ -6,40 +6,39 @@
 #define PIN_TRIGGER 12 // 
 #define PIN_ECHO   14 //
 #define NTP_PACKET_SIZE 48
-#define SERVER_NTC "" //servidor NTC 
-#define BROKER_MQTT ""
-#define TOPIC_1_MQTT ""
-#define TOPIC_2_MQTT ""
-#define ID_SENSOR_1 ""
-#define ID_MSG_SENSOR_2 "" 
-#define MAC_ADDRESS ""
+#define SERVER_NTC "gps.iar.unlp.edu.ar" //servidor NTC 
+#define BROKER_MQTT "163.10.43.85"
+#define TOPIC_1_MQTT "/iar/salaMaquinas/sensorUltrasonido"
+#define TOPIC_2_MQTT "/iar/salaMaquinas/upgrade"
+#define ID_SENSOR_1 "ULTR"
+#define ID_MSG_SENSOR_2 "CAPA" 
+#define MAC_ADDRESS "A4:CF:12:EF:7E:0B"
 #define PORT_MQTT 1883  // PORT_INSECURE
  //sensor de distancia 
-unsigned long int id_dato_sensor_1 = 0 ;
+unsigned long int id_dato_sensor_distancia = 0 ;
  //sensor capacitivo
-unsigned long int id_dato_sensor_2 = 0 ; 
-//año
+unsigned long int id_dato_sensor_capacitivo = 0 ; 
 //dia - mes - año  hh:mm:ss
 int date [6]; //
-
-// obtiene la hora usando NTC 
-void getHourNTC() ; 
-void sendPacketNTP(IPAddress& address) ; 
-void uploadONMQTT(char *topic, byte *payload, unsigned int length);
+// clases para el manejo de MQTT y NTC  
 WiFiClient espClient;
 PubSubClient client(espClient);
-WiFiUDP udp;
+WiFiUDP udp; 
+// obtiene la hora usando NTC 
+time_t getHourNTC() ; 
+void sendPacketNTP(IPAddress& address) ; 
+void uploadONMQTT(char *topic, byte *payload, unsigned int length);
 
 
 
-void initMQTT(){ 
-    Serial.println("init MQTT") ; 
-    pinMode(PIN_TRIGGER,OUTPUT) ; 
-    pinMode(PIN_ECHO,INPUT) ;    
-    randomSeed(micros()) ;
-    client.setServer(BROKER_MQTT, 1883); 
-    client.setCallback(uploadONMQTT) ; 
-    udp.begin(PORT_NTC);
+
+//DEFINICIÓN DE CALLBACKS Y SETTEAR SERVIDOR MQTT   
+void initMQTT()
+{ 
+  randomSeed(micros()) ;
+  client.setServer(BROKER_MQTT, 1883); 
+  client.setCallback(uploadONMQTT) ; 
+  udp.begin(PORT_NTC);
 }
 
 void publishmqtt() { 
@@ -128,23 +127,28 @@ void uploadONMQTT(char *topic, byte *payload, unsigned int length)
 }
 
 
-
-void getHourNTC(){
+/*
+ * return 0  -> error  
+ * else return unixtime 
+*/
+time_t getHourNTC(){
+  time_t response_time ; 
   IPAddress server_ntc_ip ; 
   byte obtain_date[NTP_PACKET_SIZE] ; 
   WiFi.hostByName(SERVER_NTC, server_ntc_ip);
   sendPacketNTP(server_ntc_ip) ; 
   int response = udp.parsePacket();
+  
   if (!response){
-    Serial.print("error in packet ") ; 
+    response_time = 0 ;  
   }else{ 
-    Serial.println("obtain parameters! ") ; 
     //obtain ntc parameters 
     udp.read(obtain_date, NTP_PACKET_SIZE);
     unsigned long highWord = word(obtain_date[40],obtain_date[41]);
     unsigned long lowWord  = word(obtain_date[42], obtain_date[43]);
-    unsigned long long int secsSince1900 = highWord << 16 | lowWord; 
-    time_t raw_secods = (time_t ) (secsSince1900 - 2208988800UL); 
+    unsigned long long int secsSince1900 = highWord << 16 | lowWord;
+    // unix time calculate  
+    time_t raw_secods = (time_t ) (secsSince1900 - 2208988800UL);  
     struct tm  ts;    
     ts = *localtime(&raw_secods);
     date[0] =  ts.tm_mday ; 
@@ -153,7 +157,10 @@ void getHourNTC(){
     date[3] =  ((ts.tm_hour+24) -3 )% 24 ; 
     date[4] = ts.tm_min ; 
     date[5] = ts.tm_sec ; 
+    response_time = raw_secods ; 
   }
+  return response_time ; 
+
 }
 
 
