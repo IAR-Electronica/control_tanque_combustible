@@ -1,5 +1,7 @@
+#ifndef DATA_SENSORS__H
+  #include "data_sensors.h"
+#endif 
 #include <Arduino.h>
-#include "data_sensors.h"
 #define PIN_TRIGGER 12 // 
 #define PIN_ECHO   14 //
 #define SOUND_VELOCITY 0.034 //  CM/SEG 
@@ -76,24 +78,7 @@ void readUltrasonicSensor(){
         }
     }
     sensor_distance_media.median_data = distance_median[2] ;
-    Serial.print("distancias: ") ; 
-    Serial.print(sensor_distance[0].distance) ; Serial.print(" "); 
-    Serial.print(sensor_distance[1].distance) ; Serial.print(" "); 
-    Serial.print(sensor_distance[2].distance) ; Serial.print(" "); 
-    Serial.print(sensor_distance[3].distance) ; Serial.print(" "); 
-    Serial.print(sensor_distance[4].distance) ; Serial.println(" "); 
     
-    Serial.print("tiempo_unix: ") ; 
-    Serial.print(sensor_distance[0].unix_time_sample) ; Serial.print(" "); 
-    Serial.print(sensor_distance[1].unix_time_sample) ; Serial.print(" "); 
-    Serial.print(sensor_distance[2].unix_time_sample) ; Serial.print(" "); 
-    Serial.print(sensor_distance[3].unix_time_sample) ; Serial.print(" "); 
-    Serial.print(sensor_distance[4].unix_time_sample) ; Serial.println(" "); 
-
-
-
-
-
 }
 
 

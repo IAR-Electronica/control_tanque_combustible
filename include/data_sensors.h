@@ -1,3 +1,4 @@
+#define DATA_SENSORS__H 
 struct sensor_ultrasonic{
     unsigned int distance ;  
     time_t unix_time_sample ;  
@@ -28,6 +29,7 @@ enum TYPE_SENSOR {
 
 
 enum ERROR_CONNECT_WIFI_MQTT {
+    INIT, 
     CONNECT, 
     ERROR_WIFI,  
     ERROR_MQTT 

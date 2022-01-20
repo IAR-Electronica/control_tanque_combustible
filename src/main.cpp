@@ -12,17 +12,17 @@
 #include <ESP8266WiFi.h> 
 #include <Arduino.h>
 #include <mqtt.hpp>
+#ifndef DATA_SENSORS__H
+  #include "data_sensors.h"
+#endif 
 #include "readSensors.hpp"
-
 //#include <webUpdater.hpp>
 #define PUBLISH_TIME_SENSOR 5 //TIME IN SECONDS 
 
-#define SSID "local"
-#define PASSWORD_WIFI "iarpublicas"
+#define SSID ""
+#define PASSWORD_WIFI ""
 
 
-
-int wifi_con = -1 ; 
 
 // scheduler variables  
 unsigned int timer_1  = 0 ; // ultrasonic sensor time 
@@ -67,24 +67,27 @@ void loop() {
     updateSoftware() ; 
   }
   
-  if (timer_4 == 600000ul){
+  if (timer_4 >= 600000ul){
     timer_4 = 0 ; 
+    isConnecctWifi_mqtt() ;
     Serial.println("10 minutos") ; 
   }
 
   // timer de un minuto 
-  if (timer_2 == 60000ul ){
-    isConnecctWifi_mqtt() ;
+  if (timer_2 >= 60000ul ){
+    publishmqtt() ; 
     timer_2 = 0 ; 
+    
   }
   
   //verificación de wifi y mqtt cada 40 segundos 
-  if (timer_3 == 40000){
+  if (timer_3 >= 40000){
     timer_3 = 0 ; 
   }
   
   // read the ultrasonic sensor 
-  if (timer_1 == 5000){
+  if (timer_1 >= 5000){
+    Serial.println("read_sensor_ultrasonic") ; 
     readUltrasonicSensor() ; 
     timer_1 = 0 ; 
   }
@@ -111,13 +114,18 @@ int connectIAR() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, psk);
 
-  while (WiFi.status() != WL_CONNECTED && timer_3 <=10000)   
+  while (WiFi.status() != WL_CONNECTED && timer_3 <=5000)   
   {
     while(timer_3%200 != 0){
       yield() ; //hace la magia de terminar la ejecución del stack tcp/ip 
     }  
     yield() ;  //hace la magia de terminar la ejecución del stack tcp/ip  
-  } 
+    if (timer_2 == 60000ul ){
+      Serial.println("publish_mqtt--- ") ;
+      timer_2 = 0 ; 
+    }
+  }  
+  
 
   if (WiFi.status() != WL_CONNECTED){
     error_connect = -1 ; 
@@ -138,27 +146,23 @@ int connectIAR() {
 
 error_connect isConnecctWifi_mqtt()
 {
-  error_connect error_status_network ; 
+  error_connect error_status_network = INIT; 
   int connect_iar ; 
   if (WiFi.status() != WL_CONNECTED )
   {
-    connect_iar = connectIAR() ; 
-    if (connect_iar == 1){
-      if (!client.connected()) 
-      {
-        reconnect(); //PONER TIMEOUT 
-      }
-    }
+    connect_iar = connectIAR() ;  //intento de reconexión 
     error_status_network = ERROR_WIFI ; 
+    return error_status_network ; 
+  }else {
+    connect_iar = 1 ; 
   }
-  return error_status_network  ; 
 
-/*
-  if (!client.connected()) 
+  if (connect_iar == 1 && !client.connected()) 
   {
-    reconnect(); //PONER TIMEOUT 
+    error_status_network = reconnect() ==1 ? CONNECT: ERROR_MQTT  ;
   }
-*/
+
+  return error_status_network ; 
 }
 
 

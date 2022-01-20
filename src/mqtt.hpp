@@ -2,24 +2,34 @@
 #include <WiFiClient.h> 
 #include <webUpdater.hpp>
 #include <WiFiUdp.h>
+#ifndef DATA_SENSORS__H
+  #include "data_sensors.h"
+#endif 
 #define PORT_NTC 2390 
 #define PIN_TRIGGER 12 // 
 #define PIN_ECHO   14 //
 #define NTP_PACKET_SIZE 48
-#define SERVER_NTC "gps.iar.unlp.edu.ar" //servidor NTC 
-#define BROKER_MQTT "163.10.43.85"
-#define TOPIC_1_MQTT "/iar/salaMaquinas/sensorUltrasonido"
-#define TOPIC_2_MQTT "/iar/salaMaquinas/upgrade"
-#define ID_SENSOR_1 "ULTR"
-#define ID_MSG_SENSOR_2 "CAPA" 
-#define MAC_ADDRESS "A4:CF:12:EF:7E:0B"
+#define SERVER_NTC "" //servidor NTC 
+#define BROKER_MQTT ""
+#define TOPIC_1_MQTT ""
+#define TOPIC_2_MQTT ""
+#define ID_SENSOR_1 ""
+#define ID_MSG_SENSOR_2 "" 
+#define MAC_ADDRESS ""
 #define PORT_MQTT 1883  // PORT_INSECURE
- //sensor de distancia 
+
+extern sensor_ultrasonic sensor_distance[5];
+//sensor de distancia 
 unsigned long int id_dato_sensor_distancia = 0 ;
  //sensor capacitivo
 unsigned long int id_dato_sensor_capacitivo = 0 ; 
-//dia - mes - año  hh:mm:ss
-int date [6]; //
+// buffer para perdida de conexión 
+sensor_ultrasonic distance_buffer[15]  ; 
+int index_distance_buffer_not_wifi = 0 ; 
+char clean_buffer = 'x' ; 
+//capacitor_buffer[3] ; 
+
+
 // clases para el manejo de MQTT y NTC  
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -28,7 +38,7 @@ WiFiUDP udp;
 time_t getHourNTC() ; 
 void sendPacketNTP(IPAddress& address) ; 
 void uploadONMQTT(char *topic, byte *payload, unsigned int length);
-
+int reconnect() ; 
 
 
 
@@ -42,34 +52,83 @@ void initMQTT()
 }
 
 void publishmqtt() { 
+    //dia - mes - año  hh:mm:ss
+    //select sensor 
+    //mqtt_status = -1 :  not OK , 1:OK 
+    //wifi_status = -1 :  not OK , 1:OK 
     
+    Serial.println("\npublish") ; 
+    int mqtt_status ; 
+    int wifi_status ; 
+    if (WiFi.status() != WL_CONNECTED)
+    {
+      Serial.println("not_wifi_connect") ; 
+      mqtt_status = -1 ;
+      wifi_status = -1 ; 
+    }else 
+    {
+      Serial.println("wifi_connect") ; 
+      wifi_status = 1 ; 
+      if (!client.connected()) 
+      {
+        mqtt_status = reconnect() ;   
+      }else mqtt_status = -1 ;  
+      
+    }
+    // dia - mes - año hora: minuto:segundo 
+    // si son todos ceros, significa que no se pudo obtener la hora 
+    // del servidor NTC  
+    int date [6]; 
+    struct tm  ts;  
+    ts = *localtime(&sensor_distance[0].unix_time_sample);
+    date[0] =  ts.tm_mday ; 
+    date[1] = ts.tm_mon+1 ; 
+    date[2] = ts.tm_year +1900;
+    date[3] =  ((ts.tm_hour+24) -3 )% 24 ; 
+    date[4] = ts.tm_min ; 
+    date[5] = ts.tm_sec ; 
     //id_dato,timestamp, id_mcu,id_sensor, dato  
-    /* --ber_data++ -->init in one 
-      id_dato --> incre>id_dato: nummenta en 1,
-      timestamp --> ntc
-      id_mcu = "mac"
-      dato 
-    */
+    if (mqtt_status == -1 && wifi_status == -1){
+      Serial.print("mqtt = -1 y wifi = -1") ; 
+      distance_buffer[index_distance_buffer_not_wifi] = sensor_distance[0] ; 
+      index_distance_buffer_not_wifi++ ;
+      index_distance_buffer_not_wifi =   index_distance_buffer_not_wifi%15;     
+      clean_buffer = 'c' ; 
+      return ; 
+    }
+    char payload[70] ; 
    
-   // getHourNTC() ; 
-    //id_dato,timestamp, id_mcu,id_sensor, dato  
-    char payload[41] ; 
-    /*                //  
-    sprintf(payload,"%ld ,%d/%d/%d %02d:%02d:%02d,%s,%s,%d" ,id_dato_sensor_1,date[0],date[1],
+    if (clean_buffer == 'c'){
+      Serial.println("clean_buffer ") ; 
+      for (int i = 0;i<15 ; i++){
+        sprintf(payload,"%ld ,%d/%d/%d %02d:%02d:%02d,%s,%s,%u" ,id_dato_sensor_distancia,date[0],date[1],
             date[2],date[3],date[4],date[5],MAC_ADDRESS,
-            ID_SENSOR_1, distance); */ 
+            ID_SENSOR_1, distance_buffer[i].distance );      
+         id_dato_sensor_distancia++ ;     
+         Serial.print("payoload[") ;
+         Serial.print(i) ; Serial.print("]: ") ;  Serial.println(payload) ;
+         client.publish(TOPIC_1_MQTT,payload) ; 
+      }
+      clean_buffer = 'x' ;   
+      index_distance_buffer_not_wifi = 0 ; 
+    }
+    sprintf(payload,"%ld ,%d/%d/%d %02d:%02d:%02d,%s,%s,%u" ,id_dato_sensor_distancia,date[0],date[1],
+            date[2],date[3],date[4],date[5],MAC_ADDRESS,
+            ID_SENSOR_1, sensor_distance[0].distance );       
     
-   // client.publish(TOPIC_1_MQTT,payload) ; 
+    Serial.print("payoload: ") ; Serial.println(payload) ; 
+   // 
 }
 
 
 
 
 
-
-void reconnect() {
-  // Loop until we're reconnected
-  while (!client.connected()) 
+// return 1 -> connect 
+// return -1 -> not connect 
+int reconnect() {
+  int status ; 
+  if (!client.connected()) 
   {
     // Create a random client ID
     String clientId = "ESP8266SALAMAQUINA";
@@ -78,11 +137,12 @@ void reconnect() {
     clientId += String(random(0xffff), HEX) ; 
     // Attempt to connect
     if (client.connect(clientId.c_str())) {
-      Serial.println("connected");
+      Serial.println("connected") ; 
       client.subscribe(TOPIC_2_MQTT) ; 
-    
+      status = 1  ; 
     } 
-  }
+  }else status = -1 ; 
+  return status ; 
 }
 
 
@@ -149,14 +209,7 @@ time_t getHourNTC(){
     unsigned long long int secsSince1900 = highWord << 16 | lowWord;
     // unix time calculate  
     time_t raw_secods = (time_t ) (secsSince1900 - 2208988800UL);  
-    struct tm  ts;    
-    ts = *localtime(&raw_secods);
-    date[0] =  ts.tm_mday ; 
-    date[1] = ts.tm_mon+1 ; 
-    date[2] = ts.tm_year +1900;
-    date[3] =  ((ts.tm_hour+24) -3 )% 24 ; 
-    date[4] = ts.tm_min ; 
-    date[5] = ts.tm_sec ; 
+  
     response_time = raw_secods ; 
   }
   return response_time ; 
