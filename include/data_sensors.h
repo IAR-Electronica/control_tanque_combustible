@@ -14,8 +14,7 @@ struct sensor_ultrasonic_compute{
 
 
 struct sensor_capacitivo{
-    unsigned int id_dato  ; 
-    bool state_sensor_cap  ; 
+    int state_sensor_cap  ; 
     time_t last_unix_time ; 
 }; 
 
@@ -41,3 +40,4 @@ typedef sensor_ultrasonic_compute sensor_distance_media_values  ;
 typedef sensor_ultrasonic sensor_ultrasonic ; 
 typedef TYPE_SENSOR type_sensor ; 
 typedef ERROR_CONNECT_WIFI_MQTT error_connect ; 
+typedef sensor_capacitivo s_cap ; 

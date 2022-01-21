@@ -9,8 +9,7 @@
 //ultimas 5 lecturas del sensor ultrasonico  
 sensor_ultrasonic sensor_distance[5];  
 sensor_distance_media_values sensor_distance_media ; 
-time_t time_sample_error ;  
-
+s_cap sensor_cap; 
 
 void initPorts(){
     pinMode(PIN_TRIGGER,OUTPUT) ;
@@ -83,13 +82,15 @@ void readUltrasonicSensor(){
 
 
 void sensorCapacitivo(){
-    int value_sensor_cap ; 
+
+
+    time_t unix_time = getHourNTC() ; 
+    if (unix_time == 0){
+        sensor_cap.last_unix_time = (sensor_cap.last_unix_time != 0)?sensor_cap.last_unix_time+(time_t )(600): sensor_cap.last_unix_time ;  
+    }
     if (digitalRead(PIN_SENSOR_CAP) == LOW) {
-        value_sensor_cap = 0 ; 
+        sensor_cap.state_sensor_cap = 0 ; 
     }else if (digitalRead(PIN_SENSOR_CAP) == HIGH){ 
-        value_sensor_cap = 0xFF ; 
+       sensor_cap.state_sensor_cap = 0 ; 
     }  
-    //PUBLISH SENSOR_CAP 
-
-
 }

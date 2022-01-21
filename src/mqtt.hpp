@@ -9,15 +9,15 @@
 #define PIN_TRIGGER 12 // 
 #define PIN_ECHO   14 //
 #define NTP_PACKET_SIZE 48
-#define SERVER_NTC "" //servidor NTC 
-#define BROKER_MQTT ""
-#define TOPIC_1_MQTT ""
-#define TOPIC_2_MQTT ""
-#define ID_SENSOR_1 ""
-#define ID_MSG_SENSOR_2 "" 
-#define MAC_ADDRESS ""
+#define SERVER_NTC "gps.iar.unlp.edu.ar" //servidor NTC 
+#define BROKER_MQTT "163.10.43.85"
+#define TOPIC_1_MQTT "/iar/salaMaquinas/sensorUltrasonido"
+#define TOPIC_2_MQTT  "/iar/salaMaquinas/upgrade"
+#define ID_SENSOR_1 "ULTR"
+#define ID_MSG_SENSOR_2 "CAPA" 
+#define MAC_ADDRESS "A4:CF:12:EF:7E:0B"
 #define PORT_MQTT 1883  // PORT_INSECURE
-
+extern s_cap sensor_cap ; 
 extern sensor_ultrasonic sensor_distance[5];
 //sensor de distancia 
 unsigned long int id_dato_sensor_distancia = 0 ;
@@ -25,6 +25,8 @@ unsigned long int id_dato_sensor_distancia = 0 ;
 unsigned long int id_dato_sensor_capacitivo = 0 ; 
 // buffer para perdida de conexión 
 sensor_ultrasonic distance_buffer[15]  ; 
+s_cap sensor_cap_buffer[2] ; 
+int index_capacitor_buffer_not_wifi = 0 ; 
 int index_distance_buffer_not_wifi = 0 ; 
 char clean_buffer = 'x' ; 
 //capacitor_buffer[3] ; 
@@ -51,73 +53,110 @@ void initMQTT()
   udp.begin(PORT_NTC);
 }
 
-void publishmqtt() { 
+void publishmqtt(type_sensor sensor) { 
     //dia - mes - año  hh:mm:ss
-    //select sensor 
+    int date [6]; 
+    struct tm  ts;  
+    int mqtt_status ; 
+    int wifi_status ;
+
+    //verficación del estado de la red y del servidor mqtt   
     //mqtt_status = -1 :  not OK , 1:OK 
     //wifi_status = -1 :  not OK , 1:OK 
-    
-    Serial.println("\npublish") ; 
-    int mqtt_status ; 
-    int wifi_status ; 
+    Serial.println("publish_mqtt") ; 
+
     if (WiFi.status() != WL_CONNECTED)
     {
-      Serial.println("not_wifi_connect") ; 
+      Serial.println("mqtt_status y wifi_status -1 ") ; 
       mqtt_status = -1 ;
       wifi_status = -1 ; 
     }else 
     {
-      Serial.println("wifi_connect") ; 
       wifi_status = 1 ; 
       if (!client.connected()) 
       {
         mqtt_status = reconnect() ;   
-      }else mqtt_status = -1 ;  
-      
+      }else mqtt_status = 1 ;  
+      Serial.print("wifi_status= 1 y mqtt_status = ") ; 
+      Serial.println(mqtt_status) ; 
     }
     // dia - mes - año hora: minuto:segundo 
     // si son todos ceros, significa que no se pudo obtener la hora 
     // del servidor NTC  
-    int date [6]; 
-    struct tm  ts;  
-    ts = *localtime(&sensor_distance[0].unix_time_sample);
+    if (sensor == ULTRASONIDO){
+      ts = *localtime(&sensor_distance[0].unix_time_sample);
+    }else if(sensor == CAPACITIVO) {
+      ts = *localtime(&sensor_cap.last_unix_time);
+    }
     date[0] =  ts.tm_mday ; 
-    date[1] = ts.tm_mon+1 ; 
-    date[2] = ts.tm_year +1900;
+    date[1] =  ts.tm_mon+1 ; 
+    date[2] =  ts.tm_year +1900;
     date[3] =  ((ts.tm_hour+24) -3 )% 24 ; 
-    date[4] = ts.tm_min ; 
-    date[5] = ts.tm_sec ; 
+    date[4] =  ts.tm_min ; 
+    date[5] =  ts.tm_sec ; 
     //id_dato,timestamp, id_mcu,id_sensor, dato  
-    if (mqtt_status == -1 && wifi_status == -1){
-      Serial.print("mqtt = -1 y wifi = -1") ; 
-      distance_buffer[index_distance_buffer_not_wifi] = sensor_distance[0] ; 
-      index_distance_buffer_not_wifi++ ;
-      index_distance_buffer_not_wifi =   index_distance_buffer_not_wifi%15;     
-      clean_buffer = 'c' ; 
+    if (mqtt_status == -1 || wifi_status ==-1){
+      if (sensor == ULTRASONIDO){ 
+        distance_buffer[index_distance_buffer_not_wifi] = sensor_distance[0] ; 
+        index_distance_buffer_not_wifi++ ;
+        index_distance_buffer_not_wifi =   index_distance_buffer_not_wifi%15;     
+        
+      }else if (sensor == CAPACITIVO){
+        sensor_cap_buffer[index_capacitor_buffer_not_wifi] = sensor_cap ; 
+        index_capacitor_buffer_not_wifi++  ;
+        index_capacitor_buffer_not_wifi = index_capacitor_buffer_not_wifi %2  ; 
+       
+      } 
+      clean_buffer = 'c' ;
       return ; 
     }
     char payload[70] ; 
-   
+  
     if (clean_buffer == 'c'){
+      //CLEAN DATA BECAUSE NOT WIFI FUNCTION 
       Serial.println("clean_buffer ") ; 
       for (int i = 0;i<15 ; i++){
-        sprintf(payload,"%ld ,%d/%d/%d %02d:%02d:%02d,%s,%s,%u" ,id_dato_sensor_distancia,date[0],date[1],
-            date[2],date[3],date[4],date[5],MAC_ADDRESS,
-            ID_SENSOR_1, distance_buffer[i].distance );      
-         id_dato_sensor_distancia++ ;     
-         Serial.print("payoload[") ;
-         Serial.print(i) ; Serial.print("]: ") ;  Serial.println(payload) ;
-         client.publish(TOPIC_1_MQTT,payload) ; 
+        sprintf(payload,"%ld ,%d - %d - %d- %02d:%02d:%02d,%s,%s,%u" ,id_dato_sensor_distancia,date[2],date[1],
+            date[0],date[3],date[4],date[5],MAC_ADDRESS,
+            ID_SENSOR_1, distance_buffer[i].distance );  
+         //clean buffering 
+        distance_buffer[i].distance = 0 ; 
+        distance_buffer[i].unix_time_sample = 0 ; 
+        id_dato_sensor_distancia++ ;     
+        client.publish(TOPIC_1_MQTT,payload) ;
+        
       }
-      clean_buffer = 'x' ;   
+
+      clean_buffer = 'x' ;     
+      sprintf(payload,"%ld ,%d-%d-%d %02d:%02d:%02d,%s,%s,%u" ,id_dato_sensor_capacitivo,date[2],date[1],
+            date[0],date[3],date[4],date[5],MAC_ADDRESS,
+            ID_MSG_SENSOR_2, sensor_cap_buffer[0].state_sensor_cap );  
+      client.publish(TOPIC_1_MQTT,payload) ;
+      
+      id_dato_sensor_capacitivo++ ; 
+      sprintf(payload,"%ld ,%d-%d-%d %02d:%02d:%02d,%s,%s,%u" ,id_dato_sensor_capacitivo,date[2],date[1],
+            date[0],date[3],date[4],date[5],MAC_ADDRESS,
+            ID_MSG_SENSOR_2, sensor_cap_buffer[1].state_sensor_cap );  
+      client.publish(TOPIC_1_MQTT,payload) ;
+      id_dato_sensor_capacitivo++ ; 
       index_distance_buffer_not_wifi = 0 ; 
+      Serial.println ("end clean buffer") ; 
+      return ; 
     }
-    sprintf(payload,"%ld ,%d/%d/%d %02d:%02d:%02d,%s,%s,%u" ,id_dato_sensor_distancia,date[0],date[1],
-            date[2],date[3],date[4],date[5],MAC_ADDRESS,
+
+    if (sensor == ULTRASONIDO){
+      sprintf(payload,"%ld ,%d-%d-%d %02d:%02d:%02d,%s,%s,%u" ,id_dato_sensor_distancia,date[2],date[1],
+            date[0],date[3],date[4],date[5],MAC_ADDRESS,
             ID_SENSOR_1, sensor_distance[0].distance );       
-    
-    Serial.print("payoload: ") ; Serial.println(payload) ; 
-   // 
+      id_dato_sensor_distancia++ ; 
+    }else if(sensor == CAPACITIVO){
+      sprintf(payload,"%ld ,%d-%d-%d %02d:%02d:%02d,%s,%s,%u" ,id_dato_sensor_capacitivo,date[2],date[1],
+            date[0],date[3],date[4],date[5],MAC_ADDRESS,
+            ID_MSG_SENSOR_2, sensor_cap.state_sensor_cap );       
+      id_dato_sensor_capacitivo++ ; 
+    }
+    client.publish(TOPIC_1_MQTT,payload) ; 
+   
 }
 
 
@@ -209,7 +248,6 @@ time_t getHourNTC(){
     unsigned long long int secsSince1900 = highWord << 16 | lowWord;
     // unix time calculate  
     time_t raw_secods = (time_t ) (secsSince1900 - 2208988800UL);  
-  
     response_time = raw_secods ; 
   }
   return response_time ; 

@@ -18,3 +18,8 @@ void initWebUpdate(const char *user, const char *pass ){
 void updateSoftware(){
     httpServer.handleClient();
 }
+
+void server_web_off(){ 
+    web_update_on = false ; 
+    httpServer.stop() ; 
+}

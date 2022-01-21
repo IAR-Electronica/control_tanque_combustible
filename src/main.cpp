@@ -43,12 +43,12 @@ void IRAM_ATTR isr_time() ;
 void setup() {
   Serial.begin(115200);
   initTimer() ;   
-  initMQTT() ;  
-  Serial.println() ;  
-  wifi_con =-1;  
+  int wifi_con = connectIAR(); 
+  initMQTT() ; 
+
   if (wifi_con == 1){
     getHourNTC() ; 
-    initMQTT() ; 
+    
   }else if (wifi_con == -1){
     Serial.print("WIFI_CON -1") ;
   }else ESP.restart() ;  // seguridad   
@@ -68,26 +68,26 @@ void loop() {
   }
   
   if (timer_4 >= 600000ul){
+    sensorCapacitivo() ; 
+    publishmqtt(CAPACITIVO) ; 
     timer_4 = 0 ; 
-    isConnecctWifi_mqtt() ;
-    Serial.println("10 minutos") ; 
   }
 
   // timer de un minuto 
   if (timer_2 >= 60000ul ){
-    publishmqtt() ; 
+    publishmqtt(ULTRASONIDO) ; 
     timer_2 = 0 ; 
     
   }
   
   //verificación de wifi y mqtt cada 40 segundos 
   if (timer_3 >= 40000){
+    isConnecctWifi_mqtt() ; //response using in the next designers
     timer_3 = 0 ; 
   }
   
   // read the ultrasonic sensor 
   if (timer_1 >= 5000){
-    Serial.println("read_sensor_ultrasonic") ; 
     readUltrasonicSensor() ; 
     timer_1 = 0 ; 
   }
@@ -114,19 +114,16 @@ int connectIAR() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, psk);
 
-  while (WiFi.status() != WL_CONNECTED && timer_3 <=5000)   
+  while (WiFi.status() != WL_CONNECTED && timer_3 <=10000)   
   {
     while(timer_3%200 != 0){
       yield() ; //hace la magia de terminar la ejecución del stack tcp/ip 
     }  
     yield() ;  //hace la magia de terminar la ejecución del stack tcp/ip  
-    if (timer_2 == 60000ul ){
-      Serial.println("publish_mqtt--- ") ;
-      timer_2 = 0 ; 
-    }
+    
   }  
-  
-
+  Serial.print("IP: ") ; Serial.println(WiFi.localIP()) ; 
+  timer_3 = 0 ;
   if (WiFi.status() != WL_CONNECTED){
     error_connect = -1 ; 
   }else error_connect = 1 ; 
@@ -146,6 +143,7 @@ int connectIAR() {
 
 error_connect isConnecctWifi_mqtt()
 {
+  Serial.println("isconnect_wifi_mqtt ") ; 
   error_connect error_status_network = INIT; 
   int connect_iar ; 
   if (WiFi.status() != WL_CONNECTED )
