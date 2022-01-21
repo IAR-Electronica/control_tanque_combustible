@@ -2,6 +2,7 @@
 #include <WiFiClient.h> 
 #include <webUpdater.hpp>
 #include <WiFiUdp.h>
+#include <ArduinoJson.h>
 #ifndef DATA_SENSORS__H
   #include "data_sensors.h"
 #endif 
@@ -12,7 +13,7 @@
 #define SERVER_NTC "gps.iar.unlp.edu.ar" //servidor NTC 
 #define BROKER_MQTT "163.10.43.85"
 #define TOPIC_1_MQTT "/iar/salaMaquinas/sensorUltrasonido"
-#define TOPIC_2_MQTT  "/iar/salaMaquinas/upgrade"
+#define TOPIC_2_MQTT "/iar/salaMaquinas/upgrade"
 #define ID_SENSOR_1 "ULTR"
 #define ID_MSG_SENSOR_2 "CAPA" 
 #define MAC_ADDRESS "A4:CF:12:EF:7E:0B"
@@ -25,11 +26,11 @@ unsigned long int id_dato_sensor_distancia = 0 ;
 unsigned long int id_dato_sensor_capacitivo = 0 ; 
 // buffer para perdida de conexión 
 sensor_ultrasonic distance_buffer[15]  ; 
+//capacitor_buffer[3] ; 
 s_cap sensor_cap_buffer[2] ; 
 int index_capacitor_buffer_not_wifi = 0 ; 
 int index_distance_buffer_not_wifi = 0 ; 
 char clean_buffer = 'x' ; 
-//capacitor_buffer[3] ; 
 
 
 // clases para el manejo de MQTT y NTC  
@@ -110,33 +111,65 @@ void publishmqtt(type_sensor sensor) {
       clean_buffer = 'c' ;
       return ; 
     }
-    char payload[70] ; 
+    char payload[200] ; 
+    char data_date[20] ;
+    StaticJsonDocument<192> doc;
+     
   
     if (clean_buffer == 'c'){
       //CLEAN DATA BECAUSE NOT WIFI FUNCTION 
       Serial.println("clean_buffer ") ; 
       for (int i = 0;i<15 ; i++){
-        sprintf(payload,"%ld ,%d - %d - %d- %02d:%02d:%02d,%s,%s,%u" ,id_dato_sensor_distancia,date[2],date[1],
-            date[0],date[3],date[4],date[5],MAC_ADDRESS,
-            ID_SENSOR_1, distance_buffer[i].distance );  
-         //clean buffering 
+        ts = *localtime(&distance_buffer[i].unix_time_sample);
+        date[0] =  ts.tm_mday ; 
+        date[1] =  ts.tm_mon+1 ; 
+        date[2] =  ts.tm_year + 1900;
+        date[3] =  ((ts.tm_hour+24) -3 )% 24 ; 
+        date[4] =  ts.tm_min ; 
+        date[5] =  ts.tm_sec ;     
+        sprintf(data_date,"%d-%d-%d %02d:%02d:%02d" ,date[2],date[1],date[0],date[3],date[4],date[5]);  //clean buffering 
+        doc["id"] = id_dato_sensor_distancia;
+        doc["fecha"] = data_date;
+        doc["mac"] = MAC_ADDRESS;
+        doc["idSensor"] = ID_SENSOR_1;
+        doc["dato"] =distance_buffer[i].distance  ;
+        serializeJson(doc,payload) ; 
         distance_buffer[i].distance = 0 ; 
         distance_buffer[i].unix_time_sample = 0 ; 
         id_dato_sensor_distancia++ ;     
         client.publish(TOPIC_1_MQTT,payload) ;
         
-      }
-
-      clean_buffer = 'x' ;     
-      sprintf(payload,"%ld ,%d-%d-%d %02d:%02d:%02d,%s,%s,%u" ,id_dato_sensor_capacitivo,date[2],date[1],
-            date[0],date[3],date[4],date[5],MAC_ADDRESS,
-            ID_MSG_SENSOR_2, sensor_cap_buffer[0].state_sensor_cap );  
+      }      
+      ts = *localtime(&sensor_cap_buffer[0].last_unix_time);
+      date[0] =  ts.tm_mday ; 
+      date[1] =  ts.tm_mon+1 ; 
+      date[2] =  ts.tm_year + 1900;
+      date[3] =  ((ts.tm_hour+24) -3 )% 24 ; 
+      date[4] =  ts.tm_min ; 
+      date[5] =  ts.tm_sec ;     
+      sprintf(data_date,"%d-%d-%d %02d:%02d:%02d" ,date[2],date[1],date[0],date[3],date[4],date[5]);
+      doc["id"] = id_dato_sensor_distancia;
+      doc["fecha"] = data_date;
+      doc["mac"] = MAC_ADDRESS;
+      doc["idSensor"] = ID_MSG_SENSOR_2;
+      doc["dato"] =   sensor_cap_buffer[0].state_sensor_cap;
+      serializeJson(doc,payload) ; 
       client.publish(TOPIC_1_MQTT,payload) ;
       
-      id_dato_sensor_capacitivo++ ; 
-      sprintf(payload,"%ld ,%d-%d-%d %02d:%02d:%02d,%s,%s,%u" ,id_dato_sensor_capacitivo,date[2],date[1],
-            date[0],date[3],date[4],date[5],MAC_ADDRESS,
-            ID_MSG_SENSOR_2, sensor_cap_buffer[1].state_sensor_cap );  
+      ts = *localtime(&sensor_cap_buffer[1].last_unix_time);
+      date[0] =  ts.tm_mday ; 
+      date[1] =  ts.tm_mon+1 ; 
+      date[2] =  ts.tm_year + 1900;
+      date[3] =  ((ts.tm_hour+24) -3 )% 24 ; 
+      date[4] =  ts.tm_min ; 
+      date[5] =  ts.tm_sec ;     
+      sprintf(data_date,"%d-%d-%d %02d:%02d:%02d" ,date[2],date[1],date[0],date[3],date[4],date[5]);
+      doc["id"] = id_dato_sensor_distancia;
+      doc["fecha"] = data_date;
+      doc["mac"] = MAC_ADDRESS;
+      doc["idSensor"] = ID_MSG_SENSOR_2;
+      doc["dato"] =   sensor_cap_buffer[0].state_sensor_cap;
+      serializeJson(doc,payload) ; 
       client.publish(TOPIC_1_MQTT,payload) ;
       id_dato_sensor_capacitivo++ ; 
       index_distance_buffer_not_wifi = 0 ; 
@@ -145,16 +178,26 @@ void publishmqtt(type_sensor sensor) {
     }
 
     if (sensor == ULTRASONIDO){
-      sprintf(payload,"%ld ,%d-%d-%d %02d:%02d:%02d,%s,%s,%u" ,id_dato_sensor_distancia,date[2],date[1],
-            date[0],date[3],date[4],date[5],MAC_ADDRESS,
-            ID_SENSOR_1, sensor_distance[0].distance );       
+      sprintf(data_date,"%d-%d-%d %02d:%02d:%02d" ,date[2],date[1],date[0],date[3],date[4],date[5]);       
+      doc["id"] = id_dato_sensor_distancia;
+      doc["fecha"] = data_date;
+      doc["mac"] = MAC_ADDRESS;
+      doc["idSensor"] = ID_SENSOR_1;
+      doc["dato"] =sensor_distance[0].distance ;
+      
       id_dato_sensor_distancia++ ; 
     }else if(sensor == CAPACITIVO){
-      sprintf(payload,"%ld ,%d-%d-%d %02d:%02d:%02d,%s,%s,%u" ,id_dato_sensor_capacitivo,date[2],date[1],
-            date[0],date[3],date[4],date[5],MAC_ADDRESS,
-            ID_MSG_SENSOR_2, sensor_cap.state_sensor_cap );       
+      sprintf(data_date,"%d-%d-%d %02d:%02d:%02d" ,date[2],date[1],date[0],date[3],date[4],date[5]);       
+
+      doc["id"] = id_dato_sensor_capacitivo;
+      doc["fecha"] = data_date;
+      doc["mac"] = MAC_ADDRESS;
+      doc["idSensor"] = ID_MSG_SENSOR_2;
+      doc["dato"] =sensor_cap.state_sensor_cap ;
       id_dato_sensor_capacitivo++ ; 
     }
+    serializeJson(doc,payload ) ; 
+    Serial.print("json_payload: ") ; Serial.println(payload) ; 
     client.publish(TOPIC_1_MQTT,payload) ; 
    
 }

@@ -13,7 +13,7 @@ s_cap sensor_cap;
 
 void initPorts(){
     pinMode(PIN_TRIGGER,OUTPUT) ;
-    pinMode(PIN_SENSOR_CAP,OUTPUT) ;
+    pinMode(PIN_SENSOR_CAP,INPUT) ;
     pinMode(PIN_ECHO,INPUT) ; 
 }
 
@@ -51,7 +51,6 @@ void readUltrasonicSensor(){
     }
     sensor_distance[0].distance = (int) distance_cm ; 
     sensor_distance[0].unix_time_sample = unix_time ; 
-    
     sensor_distance_media.media_movil =( sensor_distance[0].distance + 
                                          sensor_distance[1].distance +
                                          sensor_distance[2].distance + 
@@ -87,10 +86,12 @@ void sensorCapacitivo(){
     time_t unix_time = getHourNTC() ; 
     if (unix_time == 0){
         sensor_cap.last_unix_time = (sensor_cap.last_unix_time != 0)?sensor_cap.last_unix_time+(time_t )(600): sensor_cap.last_unix_time ;  
+    }else{ 
+        sensor_cap.last_unix_time = unix_time ; 
     }
     if (digitalRead(PIN_SENSOR_CAP) == LOW) {
         sensor_cap.state_sensor_cap = 0 ; 
     }else if (digitalRead(PIN_SENSOR_CAP) == HIGH){ 
-       sensor_cap.state_sensor_cap = 0 ; 
+        sensor_cap.state_sensor_cap = 1 ; 
     }  
 }
