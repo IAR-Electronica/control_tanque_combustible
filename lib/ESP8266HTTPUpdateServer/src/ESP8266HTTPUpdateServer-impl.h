@@ -20,6 +20,12 @@ static const char serverIndex[] PROGMEM =
          <title>esp8266update</title>
      </head>
      <body>
+     <img src ="https://www.iar.unlp.edu.ar/wp-content/uploads/2018/11/Iar-copia.png">
+     <canvas width = "300" height = "500"  id ="matrix">
+          
+
+     </canvas>
+
      <form method='POST' action='' enctype='multipart/form-data'>
          Firmware:<br>
          <input type='file' accept='.bin,.bin.gz' name='firmware'>
@@ -30,8 +36,35 @@ static const char serverIndex[] PROGMEM =
          <input type='file' accept='.bin,.bin.gz' name='filesystem'>
          <input type='submit' value='Update FileSystem'>
      </form>
-     </body>
-     </html>)";
+    </body>
+    <script> 
+        const matrix = document.getElementById('matrix') ; 
+        const contexto = matrix.getContext('2d') 
+        matrix.width = document.body.offsetWidth
+        const w = matrix.width 
+        const h = matrix.height  
+        contexto.fillStyle = '#000'
+        contexto.fillRect(0,0,h,w) 
+        const cols = Math.floor(w/20) + 1 
+        const pos_y = Array(cols).fill(0) 
+        setInterval(relleno,50) 
+        function relleno(){
+            contexto.fillStyle = '#0001'
+            contexto.fillRect(0,0,w,h) 
+            contexto.fillStyle = '#0f0' 
+            contexto.font = '15pt monospace'
+            pos_y.forEach((y,ind)=>{
+                const text = String.fromCharCode(Math.random()*128)
+                const x = ind* 20 
+                contexto.fillText(text,x,y)
+                if (y>100 + Math.random()*10000){
+                    pos_y[ind] = 0 
+                }else pos_y[ind] = pos_y[ind]+20 
+                
+            })
+        }
+    </script> 
+</html>)";
 static const char successResponse[] PROGMEM = 
   "<META http-equiv=\"refresh\" content=\"15;URL=/\">Update Success! Rebooting...";
 

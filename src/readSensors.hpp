@@ -6,6 +6,8 @@
 #define PIN_ECHO   14 //
 #define SOUND_VELOCITY 0.034 //  CM/SEG 
 #define PIN_SENSOR_CAP D1 
+#define PIN_SENSOR_CAP_1 D2 
+
 //ultimas 5 lecturas del sensor ultrasonico  
 sensor_ultrasonic sensor_distance[5];  
 sensor_distance_media_values sensor_distance_media ; 
@@ -13,8 +15,10 @@ s_cap sensor_cap;
 
 void initPorts(){
     pinMode(PIN_TRIGGER,OUTPUT) ;
-    pinMode(PIN_SENSOR_CAP,INPUT) ;
     pinMode(PIN_ECHO,INPUT) ; 
+    pinMode(PIN_SENSOR_CAP,INPUT) ;
+    pinMode(PIN_SENSOR_CAP_1,INPUT) ;
+
 }
 
 
@@ -93,5 +97,13 @@ void sensorCapacitivo(){
         sensor_cap.state_sensor_cap = 0 ; 
     }else if (digitalRead(PIN_SENSOR_CAP) == HIGH){ 
         sensor_cap.state_sensor_cap = 1 ; 
-    }  
+    }
+    if (digitalRead(PIN_SENSOR_CAP_1) == LOW) {
+        sensor_cap.state_sensor_cap_1 = 0 ; 
+    }else if (digitalRead(PIN_SENSOR_CAP_1) == HIGH){ 
+        sensor_cap.state_sensor_cap_1 = 1 ; 
+    }
+
+
+
 }

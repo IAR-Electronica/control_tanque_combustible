@@ -10,11 +10,11 @@
 #define PIN_TRIGGER 12 // 
 #define PIN_ECHO   14 //
 #define NTP_PACKET_SIZE 48
-#define SERVER_NTC "gps.iar.unlp.edu.ar" //servidor NTC 
-#define BROKER_MQTT "163.10.43.85"
+#define SERVER_NTC   "gps.iar.unlp.edu.ar" //servidor NTC 
+#define BROKER_MQTT  "163.10.43.85"
 #define TOPIC_1_MQTT "/iar/salaMaquinas/sensorUltrasonido"
 #define TOPIC_2_MQTT "/iar/salaMaquinas/upgrade"
-#define ID_SENSOR_1 "ULTR"
+#define ID_SENSOR_1  "ULTR"
 #define ID_MSG_SENSOR_2 "CAPA" 
 #define MAC_ADDRESS "A4:CF:12:EF:7E:0B"
 #define PORT_MQTT 1883  // PORT_INSECURE
@@ -116,7 +116,8 @@ void publishmqtt(type_sensor sensor) {
     StaticJsonDocument<192> doc;
      
   
-    if (clean_buffer == 'c'){
+    if (clean_buffer == 'c')
+    {
       //CLEAN DATA BECAUSE NOT WIFI FUNCTION 
       Serial.println("clean_buffer ") ; 
       for (int i = 0;i<15 ; i++){
@@ -132,7 +133,7 @@ void publishmqtt(type_sensor sensor) {
         doc["fecha"] = data_date;
         doc["mac"] = MAC_ADDRESS;
         doc["idSensor"] = ID_SENSOR_1;
-        doc["dato"] =distance_buffer[i].distance  ;
+        doc["dato"] = distance_buffer[i].distance  ;
         serializeJson(doc,payload) ; 
         distance_buffer[i].distance = 0 ; 
         distance_buffer[i].unix_time_sample = 0 ; 
@@ -153,6 +154,7 @@ void publishmqtt(type_sensor sensor) {
       doc["mac"] = MAC_ADDRESS;
       doc["idSensor"] = ID_MSG_SENSOR_2;
       doc["dato"] =   sensor_cap_buffer[0].state_sensor_cap;
+      
       serializeJson(doc,payload) ; 
       client.publish(TOPIC_1_MQTT,payload) ;
       
@@ -168,7 +170,7 @@ void publishmqtt(type_sensor sensor) {
       doc["fecha"] = data_date;
       doc["mac"] = MAC_ADDRESS;
       doc["idSensor"] = ID_MSG_SENSOR_2;
-      doc["dato"] =   sensor_cap_buffer[0].state_sensor_cap;
+      doc["dato"] =   sensor_cap_buffer[1].state_sensor_cap;
       serializeJson(doc,payload) ; 
       client.publish(TOPIC_1_MQTT,payload) ;
       id_dato_sensor_capacitivo++ ; 
@@ -184,7 +186,6 @@ void publishmqtt(type_sensor sensor) {
       doc["mac"] = MAC_ADDRESS;
       doc["idSensor"] = ID_SENSOR_1;
       doc["dato"] =sensor_distance[0].distance ;
-      
       id_dato_sensor_distancia++ ; 
     }else if(sensor == CAPACITIVO){
       sprintf(data_date,"%d-%d-%d %02d:%02d:%02d" ,date[2],date[1],date[0],date[3],date[4],date[5]);       
@@ -194,6 +195,8 @@ void publishmqtt(type_sensor sensor) {
       doc["mac"] = MAC_ADDRESS;
       doc["idSensor"] = ID_MSG_SENSOR_2;
       doc["dato"] =sensor_cap.state_sensor_cap ;
+      doc["dato_1"] =sensor_cap.state_sensor_cap_1 ;
+      
       id_dato_sensor_capacitivo++ ; 
     }
     serializeJson(doc,payload ) ; 

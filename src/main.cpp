@@ -70,6 +70,7 @@ void loop() {
   if (timer_4 >= 600000ul){
     sensorCapacitivo() ; 
     publishmqtt(CAPACITIVO) ; 
+    server_web_off() ; 
     timer_4 = 0 ; 
   }
 

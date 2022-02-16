@@ -14,7 +14,9 @@ struct sensor_ultrasonic_compute{
 
 
 struct sensor_capacitivo{
-    int state_sensor_cap  ; 
+    int state_sensor_cap  ;
+    int state_sensor_cap_1  ;
+     
     time_t last_unix_time ; 
 }; 
 
