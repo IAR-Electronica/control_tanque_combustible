@@ -93,15 +93,17 @@ void sensorCapacitivo(){
     }else{ 
         sensor_cap.last_unix_time = unix_time ; 
     }
+     //lectura primer sensor capacitivo 
     if (digitalRead(PIN_SENSOR_CAP) == LOW) {
-        sensor_cap.state_sensor_cap = 0 ; 
+        sensor_cap.state_sensor_cap = 1 ;  // hay combustible 
     }else if (digitalRead(PIN_SENSOR_CAP) == HIGH){ 
-        sensor_cap.state_sensor_cap = 1 ; 
+        sensor_cap.state_sensor_cap = 0 ; //no hay combustible
     }
+    //lectura segundo sensor capacitivo 
     if (digitalRead(PIN_SENSOR_CAP_1) == LOW) {
-        sensor_cap.state_sensor_cap_1 = 0 ; 
+        sensor_cap.state_sensor_cap_1 = 1 ; //no hay combustible  
     }else if (digitalRead(PIN_SENSOR_CAP_1) == HIGH){ 
-        sensor_cap.state_sensor_cap_1 = 1 ; 
+        sensor_cap.state_sensor_cap_1 = 0 ;// no hay combustible
     }
 
 
