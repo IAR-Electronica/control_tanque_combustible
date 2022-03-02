@@ -2,11 +2,11 @@
   #include "data_sensors.h"
 #endif 
 #include <Arduino.h>
-#define PIN_TRIGGER 12 // 
-#define PIN_ECHO   14 //
+#define PIN_TRIGGER 14 // 
+#define PIN_ECHO   12 //
 #define SOUND_VELOCITY 0.034 //  CM/SEG 
-#define PIN_SENSOR_CAP D1 
-#define PIN_SENSOR_CAP_1 D2 
+#define PIN_SENSOR_CAP D1    //sensor nivel Alto 
+#define PIN_SENSOR_CAP_1 D2  //sensor nivel bajo
 
 //ultimas 5 lecturas del sensor ultrasonico  
 sensor_ultrasonic sensor_distance[5];  

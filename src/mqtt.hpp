@@ -7,16 +7,16 @@
   #include "data_sensors.h"
 #endif 
 #define PORT_NTC 2390 
-#define PIN_TRIGGER 12 // 
-#define PIN_ECHO   14 //
 #define NTP_PACKET_SIZE 48
-#define SERVER_NTC   "" //servidor NTC 
-#define BROKER_MQTT  ""
-#define TOPIC_1_MQTT ""
-#define TOPIC_2_MQTT ""
-#define ID_SENSOR_1  ""
-#define ID_MSG_SENSOR_2 "" 
-#define MAC_ADDRESS ""
+#define SERVER_NTC "gps.iar.unlp.edu.ar" //servidor NTC 
+#define BROKER_MQTT "163.10.43.85"
+#define TOPIC_1_MQTT "/iar/salaMaquinas/sensorUltrasonido"
+#define TOPIC_CAP_MAX "/iar/salaMaquinas/sensorCapacitivoMax"
+#define TOPIC_CAP_MIN "/iar/salaMaquinas/sensorCapacitivoMin"
+#define TOPIC_2_MQTT "/iar/salaMaquinas/upgrade"
+#define ID_SENSOR_1 "ULTR"
+#define ID_MSG_SENSOR_2 "CAPA" 
+#define MAC_ADDRESS "A4:CF:12:EF:7E:0B"
 #define PORT_MQTT 1883  // PORT_INSECURE
 extern s_cap sensor_cap ; 
 extern sensor_ultrasonic sensor_distance[5];
@@ -55,9 +55,6 @@ void initMQTT()
 }
 
 void publishmqtt(type_sensor sensor) { 
-    //dia - mes - año  hh:mm:ss
-    int date [6]; 
-    struct tm  ts;  
     int mqtt_status ; 
     int wifi_status ;
 
@@ -81,21 +78,7 @@ void publishmqtt(type_sensor sensor) {
       Serial.print("wifi_status= 1 y mqtt_status = ") ; 
       Serial.println(mqtt_status) ; 
     }
-    // dia - mes - año hora: minuto:segundo 
-    // si son todos ceros, significa que no se pudo obtener la hora 
-    // del servidor NTC  
-    if (sensor == ULTRASONIDO){
-      ts = *localtime(&sensor_distance[0].unix_time_sample);
-    }else if(sensor == CAPACITIVO) {
-      ts = *localtime(&sensor_cap.last_unix_time);
-    }
-    date[0] =  ts.tm_mday ; 
-    date[1] =  ts.tm_mon+1 ; 
-    date[2] =  ts.tm_year +1900;
-    date[3] =  ((ts.tm_hour+24) -3 )% 24 ; 
-    date[4] =  ts.tm_min ; 
-    date[5] =  ts.tm_sec ; 
-    //id_dato,timestamp, id_mcu,id_sensor, dato  
+   
     if (mqtt_status == -1 || wifi_status ==-1){
       if (sensor == ULTRASONIDO){ 
         distance_buffer[index_distance_buffer_not_wifi] = sensor_distance[0] ; 
@@ -121,16 +104,11 @@ void publishmqtt(type_sensor sensor) {
       //CLEAN DATA BECAUSE NOT WIFI FUNCTION 
       Serial.println("clean_buffer ") ; 
       for (int i = 0;i<15 ; i++){
-        ts = *localtime(&distance_buffer[i].unix_time_sample);
-        date[0] =  ts.tm_mday ; 
-        date[1] =  ts.tm_mon+1 ; 
-        date[2] =  ts.tm_year + 1900;
-        date[3] =  ((ts.tm_hour+24) -3 )% 24 ; 
-        date[4] =  ts.tm_min ; 
-        date[5] =  ts.tm_sec ;     
-        sprintf(data_date,"%d-%d-%d %02d:%02d:%02d" ,date[2],date[1],date[0],date[3],date[4],date[5]);  //clean buffering 
+        if (distance_buffer[i].distance == 0){
+          continue ; 
+        }
         doc["id"] = id_dato_sensor_distancia;
-        doc["fecha"] = data_date;
+        doc["fecha"] =distance_buffer[i].unix_time_sample;
         doc["mac"] = MAC_ADDRESS;
         doc["idSensor"] = ID_SENSOR_1;
         doc["dato"] = distance_buffer[i].distance  ;
@@ -141,16 +119,9 @@ void publishmqtt(type_sensor sensor) {
         client.publish(TOPIC_1_MQTT,payload) ;
         
       }      
-      ts = *localtime(&sensor_cap_buffer[0].last_unix_time);
-      date[0] =  ts.tm_mday ; 
-      date[1] =  ts.tm_mon+1 ; 
-      date[2] =  ts.tm_year + 1900;
-      date[3] =  ((ts.tm_hour+24) -3 )% 24 ; 
-      date[4] =  ts.tm_min ; 
-      date[5] =  ts.tm_sec ;     
-      sprintf(data_date,"%d-%d-%d %02d:%02d:%02d" ,date[2],date[1],date[0],date[3],date[4],date[5]);
+     
       doc["id"] = id_dato_sensor_distancia;
-      doc["fecha"] = data_date;
+      doc["fecha"] = sensor_cap_buffer[0].last_unix_time;
       doc["mac"] = MAC_ADDRESS;
       doc["idSensor"] = ID_MSG_SENSOR_2;
       doc["dato"] =   sensor_cap_buffer[0].state_sensor_cap;
@@ -158,16 +129,8 @@ void publishmqtt(type_sensor sensor) {
       serializeJson(doc,payload) ; 
       client.publish(TOPIC_1_MQTT,payload) ;
       
-      ts = *localtime(&sensor_cap_buffer[1].last_unix_time);
-      date[0] =  ts.tm_mday ; 
-      date[1] =  ts.tm_mon+1 ; 
-      date[2] =  ts.tm_year + 1900;
-      date[3] =  ((ts.tm_hour+24) -3 )% 24 ; 
-      date[4] =  ts.tm_min ; 
-      date[5] =  ts.tm_sec ;     
-      sprintf(data_date,"%d-%d-%d %02d:%02d:%02d" ,date[2],date[1],date[0],date[3],date[4],date[5]);
       doc["id"] = id_dato_sensor_distancia;
-      doc["fecha"] = data_date;
+      doc["fecha"] = sensor_cap_buffer[1].last_unix_time;
       doc["mac"] = MAC_ADDRESS;
       doc["idSensor"] = ID_MSG_SENSOR_2;
       doc["dato"] =   sensor_cap_buffer[1].state_sensor_cap;
@@ -180,23 +143,19 @@ void publishmqtt(type_sensor sensor) {
     }
 
     if (sensor == ULTRASONIDO){
-      sprintf(data_date,"%d-%d-%d %02d:%02d:%02d" ,date[2],date[1],date[0],date[3],date[4],date[5]);       
+          
       doc["id"] = id_dato_sensor_distancia;
-      doc["fecha"] = data_date;
+      doc["fecha"] = sensor_distance[0].unix_time_sample;
       doc["mac"] = MAC_ADDRESS;
       doc["idSensor"] = ID_SENSOR_1;
       doc["dato"] =sensor_distance[0].distance ;
       id_dato_sensor_distancia++ ; 
     }else if(sensor == CAPACITIVO){
-      sprintf(data_date,"%d-%d-%d %02d:%02d:%02d" ,date[2],date[1],date[0],date[3],date[4],date[5]);       
-
       doc["id"] = id_dato_sensor_capacitivo;
-      doc["fecha"] = data_date;
+      doc["fecha"] = sensor_cap.last_unix_time;
       doc["mac"] = MAC_ADDRESS;
       doc["idSensor"] = ID_MSG_SENSOR_2;
-      doc["dato"] =sensor_cap.state_sensor_cap ;
-      doc["dato_1"] =sensor_cap.state_sensor_cap_1 ;
-      
+      doc["dato"] =sensor_cap.state_sensor_cap ; 
       id_dato_sensor_capacitivo++ ; 
     }
     serializeJson(doc,payload ) ; 

@@ -19,8 +19,8 @@
 //#include <webUpdater.hpp>
 #define PUBLISH_TIME_SENSOR 5 //TIME IN SECONDS 
 
-#define SSID ""
-#define PASSWORD_WIFI ""
+#define SSID "local"
+#define PASSWORD_WIFI "iarpublicas"
 
 
 
