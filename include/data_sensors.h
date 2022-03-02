@@ -14,15 +14,14 @@ struct sensor_ultrasonic_compute{
 
 
 struct sensor_capacitivo{
-    int state_sensor_cap  ;
-    int state_sensor_cap_1  ;
-     
+    int state_sensor_cap  ;     
     time_t last_unix_time ; 
 }; 
 
 
 enum TYPE_SENSOR {
-    CAPACITIVO, 
+    CAPACITIVO_MAX, 
+    CAPACITIVO_MIN, 
     ULTRASONIDO,
     ERROR_ULTRASONIDO
 }; 

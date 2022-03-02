@@ -19,8 +19,8 @@
 //#include <webUpdater.hpp>
 #define PUBLISH_TIME_SENSOR 5 //TIME IN SECONDS 
 
-#define SSID "local"
-#define PASSWORD_WIFI "iarpublicas"
+#define SSID ""
+#define PASSWORD_WIFI ""
 
 
 
@@ -69,7 +69,8 @@ void loop() {
   
   if (timer_4 >= 600000ul){
     sensorCapacitivo() ; 
-    publishmqtt(CAPACITIVO) ; 
+    publishmqtt(CAPACITIVO_MIN) ;
+    publishmqtt(CAPACITIVO_MAX) ;     
     server_web_off() ; 
     timer_4 = 0 ; 
   }

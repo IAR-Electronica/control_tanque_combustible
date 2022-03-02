@@ -11,8 +11,8 @@
 //ultimas 5 lecturas del sensor ultrasonico  
 sensor_ultrasonic sensor_distance[5];  
 sensor_distance_media_values sensor_distance_media ; 
-s_cap sensor_cap; 
-
+s_cap sensor_cap_min; 
+s_cap sensor_cap_max ; 
 void initPorts(){
     pinMode(PIN_TRIGGER,OUTPUT) ;
     pinMode(PIN_ECHO,INPUT) ; 
@@ -89,21 +89,21 @@ void sensorCapacitivo(){
 
     time_t unix_time = getHourNTC() ; 
     if (unix_time == 0){
-        sensor_cap.last_unix_time = (sensor_cap.last_unix_time != 0)?sensor_cap.last_unix_time+(time_t )(600): sensor_cap.last_unix_time ;  
+        sensor_cap_max.last_unix_time = (sensor_cap_max.last_unix_time != 0)?sensor_cap_max.last_unix_time+(time_t )(600): sensor_cap_max.last_unix_time ;  
     }else{ 
-        sensor_cap.last_unix_time = unix_time ; 
+        sensor_cap_max.last_unix_time = unix_time ; 
     }
      //lectura primer sensor capacitivo 
     if (digitalRead(PIN_SENSOR_CAP) == LOW) {
-        sensor_cap.state_sensor_cap = 1 ;  // hay combustible 
+        sensor_cap_max.state_sensor_cap = 1 ;  // hay combustible 
     }else if (digitalRead(PIN_SENSOR_CAP) == HIGH){ 
-        sensor_cap.state_sensor_cap = 0 ; //no hay combustible
+        sensor_cap_max.state_sensor_cap = 0 ; //no hay combustible
     }
     //lectura segundo sensor capacitivo 
     if (digitalRead(PIN_SENSOR_CAP_1) == LOW) {
-        sensor_cap.state_sensor_cap_1 = 1 ; //no hay combustible  
+        sensor_cap_min.state_sensor_cap = 1 ; // hay combustible  
     }else if (digitalRead(PIN_SENSOR_CAP_1) == HIGH){ 
-        sensor_cap.state_sensor_cap_1 = 0 ;// no hay combustible
+        sensor_cap_min.state_sensor_cap = 0 ;// no hay combustible
     }
 
 

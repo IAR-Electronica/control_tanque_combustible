@@ -15,28 +15,41 @@
 #define TOPIC_CAP_MIN "/iar/salaMaquinas/sensorCapacitivoMin"
 #define TOPIC_2_MQTT "/iar/salaMaquinas/upgrade"
 #define ID_SENSOR_1 "ULTR"
-#define ID_MSG_SENSOR_2 "CAPA" 
+#define ID_MSG_SENSOR_1 "CAPA_MAX" 
+#define ID_MSG_SENSOR_2 "CAPA_MIN" 
+
 #define MAC_ADDRESS "A4:CF:12:EF:7E:0B"
 #define PORT_MQTT 1883  // PORT_INSECURE
-extern s_cap sensor_cap ; 
+extern s_cap sensor_cap_min ;
+extern s_cap sensor_cap_max ;
 extern sensor_ultrasonic sensor_distance[5];
+
 //sensor de distancia 
 unsigned long int id_dato_sensor_distancia = 0 ;
  //sensor capacitivo
-unsigned long int id_dato_sensor_capacitivo = 0 ; 
-// buffer para perdida de conexión 
-sensor_ultrasonic distance_buffer[15]  ; 
-//capacitor_buffer[3] ; 
-s_cap sensor_cap_buffer[2] ; 
-int index_capacitor_buffer_not_wifi = 0 ; 
+unsigned long int id_dato_sensor_capacitivo_min = 0 ;
+unsigned long int id_dato_sensor_capacitivo_max = 0 ;
+
+// mediciones offline 
+int index_capacitor_buffer_not_wifi_max = 0 ;
+int index_capacitor_buffer_not_wifi_min = 0 ;
 int index_distance_buffer_not_wifi = 0 ; 
 char clean_buffer = 'x' ; 
+  // buffer para perdida de conexión 
+sensor_ultrasonic distance_buffer[15]  ; 
+  //capacitor_buffer[3] ; 
+s_cap sensor_cap_buffer_min[2] ; 
+s_cap sensor_cap_buffer_max[2] ; 
+
+
 
 
 // clases para el manejo de MQTT y NTC  
 WiFiClient espClient;
 PubSubClient client(espClient);
 WiFiUDP udp; 
+
+
 // obtiene la hora usando NTC 
 time_t getHourNTC() ; 
 void sendPacketNTP(IPAddress& address) ; 
@@ -57,7 +70,9 @@ void initMQTT()
 void publishmqtt(type_sensor sensor) { 
     int mqtt_status ; 
     int wifi_status ;
-
+    StaticJsonDocument<192> doc;
+    char payload[200] ; 
+    char topic_mqtt[40] ; 
     //verficación del estado de la red y del servidor mqtt   
     //mqtt_status = -1 :  not OK , 1:OK 
     //wifi_status = -1 :  not OK , 1:OK 
@@ -85,82 +100,112 @@ void publishmqtt(type_sensor sensor) {
         index_distance_buffer_not_wifi++ ;
         index_distance_buffer_not_wifi =   index_distance_buffer_not_wifi%15;     
         
-      }else if (sensor == CAPACITIVO){
-        sensor_cap_buffer[index_capacitor_buffer_not_wifi] = sensor_cap ; 
-        index_capacitor_buffer_not_wifi++  ;
-        index_capacitor_buffer_not_wifi = index_capacitor_buffer_not_wifi %2  ; 
+      }else if (sensor == CAPACITIVO_MAX){
+        sensor_cap_buffer_max[index_capacitor_buffer_not_wifi_max] = sensor_cap_max ; 
+        index_capacitor_buffer_not_wifi_max++  ;
+        index_capacitor_buffer_not_wifi_max = index_capacitor_buffer_not_wifi_max%2  ; 
        
+      }else if (sensor == CAPACITIVO_MIN){
+        sensor_cap_buffer_min[index_capacitor_buffer_not_wifi_min] = sensor_cap_min ;  
+        index_capacitor_buffer_not_wifi_min++  ;
+        index_capacitor_buffer_not_wifi_min = index_capacitor_buffer_not_wifi_min %2  ; 
       } 
       clean_buffer = 'c' ;
       return ; 
     }
-    char payload[200] ; 
-    char data_date[20] ;
-    StaticJsonDocument<192> doc;
-     
-  
+
+    //cleaning buffer   
     if (clean_buffer == 'c')
     {
       //CLEAN DATA BECAUSE NOT WIFI FUNCTION 
       Serial.println("clean_buffer ") ; 
-      for (int i = 0;i<15 ; i++){
+      for (int i = 0;i<15 ; i++)
+      {
         if (distance_buffer[i].distance == 0){
           continue ; 
         }
         doc["id"] = id_dato_sensor_distancia;
         doc["fecha"] =distance_buffer[i].unix_time_sample;
-        doc["mac"] = MAC_ADDRESS;
         doc["idSensor"] = ID_SENSOR_1;
         doc["dato"] = distance_buffer[i].distance  ;
         serializeJson(doc,payload) ; 
         distance_buffer[i].distance = 0 ; 
         distance_buffer[i].unix_time_sample = 0 ; 
         id_dato_sensor_distancia++ ;     
-        client.publish(TOPIC_1_MQTT,payload) ;
-        
+        sprintf(topic_mqtt,"%s",TOPIC_1_MQTT)  ; 
+        client.publish(topic_mqtt,payload) ;
+        delay(10) ; //10 ms de retraso ! 
       }      
-     
-      doc["id"] = id_dato_sensor_distancia;
-      doc["fecha"] = sensor_cap_buffer[0].last_unix_time;
-      doc["mac"] = MAC_ADDRESS;
+
+      // sensor capacitivo nivel maximo 
+      sprintf(topic_mqtt,"%s",TOPIC_CAP_MAX)  ; 
+      doc["id"] = id_dato_sensor_capacitivo_max ;
+      doc["fecha"] = sensor_cap_buffer_max[0].last_unix_time;
       doc["idSensor"] = ID_MSG_SENSOR_2;
-      doc["dato"] =   sensor_cap_buffer[0].state_sensor_cap;
-      
+      doc["dato"] =   sensor_cap_buffer_max[0].state_sensor_cap;
+
       serializeJson(doc,payload) ; 
-      client.publish(TOPIC_1_MQTT,payload) ;
-      
-      doc["id"] = id_dato_sensor_distancia;
-      doc["fecha"] = sensor_cap_buffer[1].last_unix_time;
-      doc["mac"] = MAC_ADDRESS;
+      delay(10) ; 
+      client.publish(topic_mqtt,payload) ;
+      id_dato_sensor_capacitivo_max++ ;
+      doc["id"] = id_dato_sensor_capacitivo_max;
+      doc["fecha"] = sensor_cap_buffer_max[1].last_unix_time;
       doc["idSensor"] = ID_MSG_SENSOR_2;
-      doc["dato"] =   sensor_cap_buffer[1].state_sensor_cap;
+      doc["dato"] =   sensor_cap_buffer_max[1].state_sensor_cap;
       serializeJson(doc,payload) ; 
-      client.publish(TOPIC_1_MQTT,payload) ;
-      id_dato_sensor_capacitivo++ ; 
+      client.publish(topic_mqtt,payload) ;
+      id_dato_sensor_capacitivo_max++ ;
+      // fin capacitivo nivel maximi 
+      // sensor capacitivo nivel minimo 
+      sprintf(topic_mqtt,"%s",TOPIC_CAP_MAX)  ; 
+      doc["id"] = id_dato_sensor_capacitivo_max ;
+      doc["fecha"] = sensor_cap_buffer_max[0].last_unix_time;
+      doc["idSensor"] = ID_MSG_SENSOR_2;
+      doc["dato"] =   sensor_cap_buffer_max[0].state_sensor_cap;
+
+      serializeJson(doc,payload) ; 
+      delay(10) ; 
+      client.publish(topic_mqtt,payload) ;
+      id_dato_sensor_capacitivo_max++ ;
+      doc["id"] = id_dato_sensor_capacitivo_max;
+      doc["fecha"] = sensor_cap_buffer_max[1].last_unix_time;
+      doc["idSensor"] = ID_MSG_SENSOR_2;
+      doc["dato"] =   sensor_cap_buffer_max[1].state_sensor_cap;
+      serializeJson(doc,payload) ; 
+      client.publish(topic_mqtt,payload) ;
+      id_dato_sensor_capacitivo_max++ ;
+      //fin sensor capacitivo nivel minimo 
       index_distance_buffer_not_wifi = 0 ; 
       Serial.println ("end clean buffer") ; 
       return ; 
     }
 
     if (sensor == ULTRASONIDO){
-          
+      sprintf(topic_mqtt,"%s",TOPIC_1_MQTT)  ;   
       doc["id"] = id_dato_sensor_distancia;
       doc["fecha"] = sensor_distance[0].unix_time_sample;
-      doc["mac"] = MAC_ADDRESS;
       doc["idSensor"] = ID_SENSOR_1;
       doc["dato"] =sensor_distance[0].distance ;
       id_dato_sensor_distancia++ ; 
-    }else if(sensor == CAPACITIVO){
-      doc["id"] = id_dato_sensor_capacitivo;
-      doc["fecha"] = sensor_cap.last_unix_time;
-      doc["mac"] = MAC_ADDRESS;
+    }else if(sensor == CAPACITIVO_MAX){
+      sprintf(topic_mqtt,"%s",TOPIC_CAP_MAX)  ;   
+      doc["id"] = id_dato_sensor_capacitivo_max;
+      doc["fecha"] = sensor_cap_min.last_unix_time;
+      doc["idSensor"] = ID_MSG_SENSOR_1;
+      doc["dato"] =sensor_cap_min.state_sensor_cap ; 
+      id_dato_sensor_capacitivo_max++ ; 
+    }else if (sensor== CAPACITIVO_MIN){
+      sprintf(topic_mqtt,"%s",TOPIC_CAP_MIN)  ; 
+      doc["id"] = id_dato_sensor_capacitivo_min;
+      doc["fecha"] = sensor_cap_min.last_unix_time;
       doc["idSensor"] = ID_MSG_SENSOR_2;
-      doc["dato"] =sensor_cap.state_sensor_cap ; 
-      id_dato_sensor_capacitivo++ ; 
+      doc["dato"] =sensor_cap_min.state_sensor_cap ; 
+      id_dato_sensor_capacitivo_min++ ; 
     }
-    serializeJson(doc,payload ) ; 
+    serializeJson(doc,payload ) ;
+    Serial.print("topic: ") ; Serial.println(topic_mqtt) ;  
     Serial.print("json_payload: ") ; Serial.println(payload) ; 
-    client.publish(TOPIC_1_MQTT,payload) ; 
+  //  client.publish(topic_mqtt,payload) ; 
    
 }
 
