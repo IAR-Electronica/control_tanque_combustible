@@ -2,11 +2,11 @@
   #include "data_sensors.h"
 #endif 
 #include <Arduino.h>
-#define PIN_TRIGGER 14 // 
-#define PIN_ECHO   12 //
+#define PIN_TRIGGER D5 // 
+#define PIN_ECHO   D6 //
 #define SOUND_VELOCITY 0.034 //  CM/SEG 
-#define PIN_SENSOR_CAP D1    //sensor nivel Alto 
-#define PIN_SENSOR_CAP_1 D2  //sensor nivel bajo
+#define PIN_SENSOR_CAP D2    //sensor nivel Alto 
+#define PIN_SENSOR_CAP_1 D7  //sensor nivel bajo
 
 //ultimas 5 lecturas del sensor ultrasonico  
 sensor_ultrasonic sensor_distance[5];  
@@ -43,7 +43,6 @@ void readUltrasonicSensor(){
         // publish error sensor ! 
     }
     float distance_cm = SOUND_VELOCITY * (miliseconds_response/2) ;
-    
     // fifo buffer rutina  
     for (index_fifo_buffer = 4;index_fifo_buffer>0;index_fifo_buffer--)
     {
@@ -80,18 +79,19 @@ void readUltrasonicSensor(){
         }
     }
     sensor_distance_media.median_data = distance_median[2] ;
-    
 }
 
 
 void sensorCapacitivo(){
 
-
     time_t unix_time = getHourNTC() ; 
     if (unix_time == 0){
+        Serial.print(unix_time) ; 
         sensor_cap_max.last_unix_time = (sensor_cap_max.last_unix_time != 0)?sensor_cap_max.last_unix_time+(time_t )(600): sensor_cap_max.last_unix_time ;  
+        sensor_cap_min.last_unix_time = (sensor_cap_min.last_unix_time != 0)?sensor_cap_min.last_unix_time+(time_t )(600): sensor_cap_min.last_unix_time ;  
     }else{ 
         sensor_cap_max.last_unix_time = unix_time ; 
+        sensor_cap_min.last_unix_time = unix_time ; 
     }
      //lectura primer sensor capacitivo 
     if (digitalRead(PIN_SENSOR_CAP) == LOW) {

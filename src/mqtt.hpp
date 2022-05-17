@@ -10,13 +10,13 @@
 #define NTP_PACKET_SIZE 48
 #define SERVER_NTC "gps.iar.unlp.edu.ar" //servidor NTC 
 #define BROKER_MQTT "163.10.43.85"
-#define TOPIC_1_MQTT "/iar/salaMaquinas/sensorUltrasonido"
-#define TOPIC_CAP_MAX "/iar/salaMaquinas/sensorCapacitivoMax"
-#define TOPIC_CAP_MIN "/iar/salaMaquinas/sensorCapacitivoMin"
-#define TOPIC_2_MQTT "/iar/salaMaquinas/upgrade"
+#define TOPIC_1_MQTT ""
+#define TOPIC_CAP_MAX ""
+#define TOPIC_CAP_MIN ""
+#define TOPIC_2_MQTT ""
 #define ID_SENSOR_1 "ULTR"
-#define ID_MSG_SENSOR_1 "CAPA_MAX" 
-#define ID_MSG_SENSOR_2 "CAPA_MIN" 
+#define ID_MSG_SENSOR_1 "CAPA_MAX" //FIXME: CAMBIAR POR NOMBRE MAS DESCRIPTIVO 
+#define ID_MSG_SENSOR_2 "CAPA_MIN" //FIXME: CAMBIAR POR NOMBRE MAS DESCRIPTIVO 
 
 #define MAC_ADDRESS "A4:CF:12:EF:7E:0B"
 #define PORT_MQTT 1883  // PORT_INSECURE
@@ -190,9 +190,9 @@ void publishmqtt(type_sensor sensor) {
     }else if(sensor == CAPACITIVO_MAX){
       sprintf(topic_mqtt,"%s",TOPIC_CAP_MAX)  ;   
       doc["id"] = id_dato_sensor_capacitivo_max;
-      doc["fecha"] = sensor_cap_min.last_unix_time;
+      doc["fecha"] = sensor_cap_max.last_unix_time;
       doc["idSensor"] = ID_MSG_SENSOR_1;
-      doc["dato"] =sensor_cap_min.state_sensor_cap ; 
+      doc["dato"] =sensor_cap_max.state_sensor_cap ; 
       id_dato_sensor_capacitivo_max++ ; 
     }else if (sensor== CAPACITIVO_MIN){
       sprintf(topic_mqtt,"%s",TOPIC_CAP_MIN)  ; 
@@ -205,7 +205,7 @@ void publishmqtt(type_sensor sensor) {
     serializeJson(doc,payload ) ;
     Serial.print("topic: ") ; Serial.println(topic_mqtt) ;  
     Serial.print("json_payload: ") ; Serial.println(payload) ; 
-  //  client.publish(topic_mqtt,payload) ; 
+    client.publish(topic_mqtt,payload) ; 
    
 }
 
@@ -287,7 +287,7 @@ time_t getHourNTC(){
   WiFi.hostByName(SERVER_NTC, server_ntc_ip);
   sendPacketNTP(server_ntc_ip) ; 
   int response = udp.parsePacket();
-  
+  delay(10) ; 
   if (!response){
     response_time = 0 ;  
   }else{ 

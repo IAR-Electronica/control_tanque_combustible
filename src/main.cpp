@@ -17,10 +17,12 @@
 #endif 
 #include "readSensors.hpp"
 //#include <webUpdater.hpp>
-#define PUBLISH_TIME_SENSOR 5 //TIME IN SECONDS 
-
-#define SSID ""
-#define PASSWORD_WIFI ""
+#define PUBLISH_TIME_SENSOR 5000 //TIME IN SECONDS 
+#define TIMER_CONTROL_WIFI_CONNECT  40000ul           // check the wifi connection every 40 seconds 
+#define PUBLISH_TIME_SENSOR_ULTRASONIC 6000ul       // publish distance sensor ultrasonic  
+#define PUBLISH_SENSOR_CAPACITIVE_DISTANCE 6500ul //600000ul //
+#define SSID "local"
+#define PASSWORD_WIFI "iarpublicas"
 
 
 
@@ -41,14 +43,16 @@ void IRAM_ATTR isr_time() ;
 
 
 void setup() {
+  //system_set_os_print(0) ; 
   Serial.begin(115200);
+  Serial.println("init") ; 
+
   initTimer() ;   
   int wifi_con = connectIAR(); 
   initMQTT() ; 
 
   if (wifi_con == 1){
     getHourNTC() ; 
-    
   }else if (wifi_con == -1){
     Serial.print("WIFI_CON -1") ;
   }else ESP.restart() ;  // seguridad   
@@ -58,6 +62,7 @@ void setup() {
   timer_2 = 0 ; 
   timer_3 = 0 ; 
   timer_4 = 0 ; 
+  Serial.println("end_init") ; 
 }
 
 
@@ -67,7 +72,7 @@ void loop() {
     updateSoftware() ; 
   }
   
-  if (timer_4 >= 600000ul){
+  if (timer_4 >= PUBLISH_SENSOR_CAPACITIVE_DISTANCE){
     sensorCapacitivo() ; 
     publishmqtt(CAPACITIVO_MIN) ;
     publishmqtt(CAPACITIVO_MAX) ;     
@@ -76,20 +81,21 @@ void loop() {
   }
 
   // timer de un minuto 
-  if (timer_2 >= 60000ul ){
+  //60000ul 
+  // publish distance sensor ultrasonic  
+  if (timer_2 >= PUBLISH_TIME_SENSOR_ULTRASONIC ){
     publishmqtt(ULTRASONIDO) ; 
     timer_2 = 0 ; 
-    
   }
   
   //verificación de wifi y mqtt cada 40 segundos 
-  if (timer_3 >= 40000){
+  if (timer_3 >= TIMER_CONTROL_WIFI_CONNECT){
     isConnecctWifi_mqtt() ; //response using in the next designers
     timer_3 = 0 ; 
   }
   
   // read the ultrasonic sensor 
-  if (timer_1 >= 5000){
+  if (timer_1 >= PUBLISH_TIME_SENSOR){
     readUltrasonicSensor() ; 
     timer_1 = 0 ; 
   }
@@ -184,8 +190,5 @@ void IRAM_ATTR isr_time(){
   timer_2 ++ ; 
   timer_3 ++ ; 
   timer_4 ++ ; 
-  
-
-
 }
 
