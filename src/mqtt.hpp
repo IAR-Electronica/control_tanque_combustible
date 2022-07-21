@@ -6,19 +6,19 @@
 #ifndef DATA_SENSORS__H
   #include "data_sensors.h"
 #endif 
-#define PORT_NTC 2390 
-#define NTP_PACKET_SIZE 48
-#define SERVER_NTC "gps.iar.unlp.edu.ar" //servidor NTC 
-#define BROKER_MQTT "163.10.43.85"
-#define TOPIC_1_MQTT "/iar/salaMaquinas/sensorUltrasonido"
-#define TOPIC_CAP_MAX "/iar/salaMaquinas/sensorCapacitivoMax"
-#define TOPIC_CAP_MIN "/iar/salaMaquinas/sensorCapacitivoMin"
-#define TOPIC_2_MQTT "/iar/salaMaquinas/upgrade"
+#define PORT_NTC  
+#define NTP_PACKET_SIZE 
+#define SERVER_NTC "" //servidor NTC 
+#define BROKER_MQTT ""
+#define TOPIC_1_MQTT ""
+#define TOPIC_CAP_MAX ""
+#define TOPIC_CAP_MIN ""
+#define TOPIC_2_MQTT ""
 #define ID_SENSOR_1 "ULTR"
 #define ID_MSG_SENSOR_1 "CAPA_MAX" //FIXME: CAMBIAR POR NOMBRE MAS DESCRIPTIVO 
 #define ID_MSG_SENSOR_2 "CAPA_MIN" //FIXME: CAMBIAR POR NOMBRE MAS DESCRIPTIVO 
 
-#define MAC_ADDRESS "A4:CF:12:EF:7E:0B"
+#define MAC_ADDRESS ""
 #define PORT_MQTT 1883  // PORT_INSECURE
 extern s_cap sensor_cap_min ;
 extern s_cap sensor_cap_max ;
