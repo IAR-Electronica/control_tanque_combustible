@@ -19,12 +19,10 @@
 //#include <webUpdater.hpp>
 #define PUBLISH_TIME_SENSOR 5000 //TIME IN SECONDS 
 #define TIMER_CONTROL_WIFI_CONNECT  40000ul           // check the wifi connection every 40 seconds 
-#define PUBLISH_TIME_SENSOR_ULTRASONIC 6000ul       // publish distance sensor ultrasonic  
-#define PUBLISH_SENSOR_CAPACITIVE_DISTANCE 6500ul //600000ul //
+#define PUBLISH_TIME_SENSOR_ULTRASONIC 60000ul       // publish distance sensor ultrasonic  
+#define PUBLISH_SENSOR_CAPACITIVE_DISTANCE 600000ul //
 #define SSID "local"
 #define PASSWORD_WIFI "iarpublicas"
-
-
 
 // scheduler variables  
 unsigned int timer_1  = 0 ; // ultrasonic sensor time 
